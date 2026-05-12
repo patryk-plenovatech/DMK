@@ -54,6 +54,8 @@ const HOODIE_LOAD_BACK = "/products/hoodie-load-the-bar-black-back.jpg";
 const HOODIE_CREST_FRONT = "/products/hoodie-dmk-crest-black-front.jpg";
 const TEE_LOAD_BACK = "/products/short-sleeve-load-the-bar-black-back.jpg";
 const TEE_CREST_FRONT = "/products/short-sleeve-dmk-crest-black-front.jpg";
+const HAT_BLACK = "/products/trucker-hat-dmk-black.jpg";
+const LONG_SLEEVE_PLACEHOLDER = "/products/long-sleeve-placeholder.jpg";
 
 // Design definitions — share across product types via spread.
 const D_STRENGTH_OVER_SURVIVAL: Design = {
@@ -112,19 +114,13 @@ const D_DMK_CREST: Design = {
   tagline: "House mark.",
 };
 
-// Hat variants are separate — they're not full apparel designs.
+// Trucker hat — only black is photographed for now.
 const D_HAT_DMK_BLACK: Design = {
   id: "trucker-dmk-black",
   name: "DMK Trucker — Black",
   colorways: ["black"],
-  images: [HOODIE_CREST_FRONT],
-};
-
-const D_HAT_DMK_WHITE: Design = {
-  id: "trucker-dmk-white",
-  name: "DMK Trucker — White",
-  colorways: ["white"],
-  images: [HOODIE_CREST_FRONT],
+  images: [HAT_BLACK],
+  tagline: "Mesh back. House crest.",
 };
 
 export const PRODUCTS: Product[] = [
@@ -163,14 +159,15 @@ export const PRODUCTS: Product[] = [
     type: "long-sleeve",
     name: "DMK Long Sleeve",
     price: 30,
+    // No long-sleeve photography yet — every design renders as the placeholder.
     designs: [
-      { ...D_LOAD_THE_BAR_ORANGE, images: [HOODIE_LOAD_BACK] },
-      { ...D_LOAD_THE_BAR_RED, images: [HOODIE_LOAD_BACK] },
-      D_MENTAL_STRENGTH_GREEN,
-      D_MENTAL_STRENGTH_PINK,
-      D_STRENGTH_OVER_SURVIVAL,
-      D_IRON_OVER_ILLNESS,
-      { ...D_DMK_CREST, images: [HOODIE_CREST_FRONT] },
+      { ...D_LOAD_THE_BAR_ORANGE, images: [LONG_SLEEVE_PLACEHOLDER] },
+      { ...D_LOAD_THE_BAR_RED, images: [LONG_SLEEVE_PLACEHOLDER] },
+      { ...D_MENTAL_STRENGTH_GREEN, images: [LONG_SLEEVE_PLACEHOLDER] },
+      { ...D_MENTAL_STRENGTH_PINK, images: [LONG_SLEEVE_PLACEHOLDER] },
+      { ...D_STRENGTH_OVER_SURVIVAL, images: [LONG_SLEEVE_PLACEHOLDER] },
+      { ...D_IRON_OVER_ILLNESS, images: [LONG_SLEEVE_PLACEHOLDER] },
+      { ...D_DMK_CREST, images: [LONG_SLEEVE_PLACEHOLDER] },
     ],
   },
   {
@@ -178,7 +175,7 @@ export const PRODUCTS: Product[] = [
     type: "hat",
     name: "DMK Trucker Hat",
     price: 20,
-    designs: [D_HAT_DMK_BLACK, D_HAT_DMK_WHITE],
+    designs: [D_HAT_DMK_BLACK],
   },
 ];
 

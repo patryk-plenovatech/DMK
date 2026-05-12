@@ -47,7 +47,10 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${bebas.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-dmk-black text-foreground font-body">
+      <body
+        suppressHydrationWarning
+        className="min-h-full flex flex-col bg-dmk-black text-foreground font-body"
+      >
         <Nav />
         <main className="flex-1">{children}</main>
         <Footer />
