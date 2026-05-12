@@ -8,6 +8,7 @@ import {
   COLORWAY_LABEL,
   type Product,
   getAllColorways,
+  getPrimaryImage,
 } from "@/lib/products";
 
 type Props = {
@@ -16,7 +17,9 @@ type Props = {
 
 export function ProductCard({ product }: Props) {
   const colorways = getAllColorways(product);
-  const primaryImage = product.designs[0]?.images[0] ?? "/brand/logo-silver.png";
+  const primaryImage = product.designs[0]
+    ? getPrimaryImage(product.designs[0])
+    : "/brand/logo-silver.png";
 
   return (
     <motion.div

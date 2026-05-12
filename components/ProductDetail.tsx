@@ -13,6 +13,8 @@ import {
   type Product,
   type Colorway,
   type Size,
+  getDesignColorways,
+  getDesignImages,
   getSizesFor,
 } from "@/lib/products";
 
@@ -23,19 +25,27 @@ type Props = {
 export function ProductDetail({ product }: Props) {
   const [designId, setDesignId] = useState(product.designs[0].id);
   const design = product.designs.find((d) => d.id === designId)!;
+  const designColorways = getDesignColorways(design);
 
-  const [colorway, setColorway] = useState<Colorway>(design.colorways[0]);
+  const [colorway, setColorway] = useState<Colorway>(designColorways[0]);
   const [size, setSize] = useState<Size | null>(
     getSizesFor(product.type) ? "M" : null,
   );
   const [qty, setQty] = useState(1);
   const [imageIdx, setImageIdx] = useState(0);
 
-  // When design changes, make sure colorway + image idx are valid for it.
+  const images = getDesignImages(design, colorway);
+
   function selectDesign(id: string) {
     const next = product.designs.find((d) => d.id === id)!;
+    const nextColorways = getDesignColorways(next);
     setDesignId(id);
-    if (!next.colorways.includes(colorway)) setColorway(next.colorways[0]);
+    if (!nextColorways.includes(colorway)) setColorway(nextColorways[0]);
+    setImageIdx(0);
+  }
+
+  function selectColorway(c: Colorway) {
+    setColorway(c);
     setImageIdx(0);
   }
 
@@ -51,6 +61,8 @@ export function ProductDetail({ product }: Props) {
     if (size) params.set("size", size);
     return `/checkout?${params.toString()}`;
   }, [product.slug, design.id, colorway, size, qty]);
+
+  const currentImage = images[imageIdx] ?? images[0];
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
@@ -73,18 +85,20 @@ export function ProductDetail({ product }: Props) {
             transition={{ duration: 0.4 }}
             className="relative aspect-[4/5] w-full overflow-hidden rounded-lg border border-white/5 bg-[#111]"
           >
-            <Image
-              src={design.images[imageIdx]}
-              alt={`${product.name} — ${design.name}`}
-              fill
-              priority
-              sizes="(min-width: 1024px) 50vw, 100vw"
-              className="object-cover"
-            />
+            {currentImage && (
+              <Image
+                src={currentImage}
+                alt={`${product.name} — ${design.name} — ${COLORWAY_LABEL[colorway]}`}
+                fill
+                priority
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                className="object-cover"
+              />
+            )}
           </motion.div>
-          {design.images.length > 1 && (
+          {images.length > 1 && (
             <div className="mt-4 flex gap-3">
-              {design.images.map((src, i) => (
+              {images.map((src, i) => (
                 <button
                   key={src + i}
                   onClick={() => setImageIdx(i)}
@@ -150,18 +164,21 @@ export function ProductDetail({ product }: Props) {
             </div>
           </div>
 
-          {/* Colorway picker */}
+          {/* Colorway picker — only colorways actually photographed */}
           <div className="mt-8">
             <p className="font-display text-sm tracking-widest text-foreground/50">
-              COLOR · <span className="text-foreground/80">{COLORWAY_LABEL[colorway]}</span>
+              COLOR ·{" "}
+              <span className="text-foreground/80">
+                {COLORWAY_LABEL[colorway]}
+              </span>
             </p>
             <div className="mt-3 flex flex-wrap gap-3">
-              {design.colorways.map((c) => {
+              {designColorways.map((c) => {
                 const isActive = c === colorway;
                 return (
                   <button
                     key={c}
-                    onClick={() => setColorway(c)}
+                    onClick={() => selectColorway(c)}
                     aria-label={COLORWAY_LABEL[c]}
                     className={[
                       "h-10 w-10 rounded-full border-2 transition-all",

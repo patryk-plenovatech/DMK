@@ -1,6 +1,8 @@
 // Single source of truth for DMK Apparel product catalog.
-// Photography for individual designs is partial — see /public/products/README.md.
-// We reuse what's available across the catalog; replace image paths as new shots come in.
+// A design's `imagesByColorway` map enumerates only the colorways we have
+// photography for — switching colors on the product page swaps the image.
+// Designs photographed in only one color still get one entry; that's the
+// only colorway customers can select for that design until more photos exist.
 
 export const SIZES = ["S", "M", "L", "XL", "2XL", "3XL"] as const;
 export type Size = (typeof SIZES)[number];
@@ -33,11 +35,7 @@ export const PRODUCT_TYPE_LABEL: Record<ProductType, string> = {
 export type Design = {
   id: string;
   name: string;
-  /** Available colorways for this specific design. */
-  colorways: Colorway[];
-  /** Image paths under /public/. First image is primary. */
-  images: string[];
-  /** Optional tagline shown on product page. */
+  imagesByColorway: Partial<Record<Colorway, string[]>>;
   tagline?: string;
 };
 
@@ -49,135 +47,24 @@ export type Product = {
   designs: Design[];
 };
 
-// Photographed assets in /public/products/
-const HOODIE_LOAD_BACK = "/products/hoodie-load-the-bar-black-back.jpg";
-const HOODIE_CREST_FRONT = "/products/hoodie-dmk-crest-black-front.jpg";
-const TEE_LOAD_BACK = "/products/short-sleeve-load-the-bar-black-back.jpg";
-const TEE_CREST_FRONT = "/products/short-sleeve-dmk-crest-black-front.jpg";
-const HAT_BLACK = "/products/trucker-hat-dmk-black.jpg";
-const LONG_SLEEVE_PLACEHOLDER = "/products/long-sleeve-placeholder.jpg";
+// --- helpers --------------------------------------------------------------
 
-// Design definitions — share across product types via spread.
-const D_STRENGTH_OVER_SURVIVAL: Design = {
-  id: "strength-over-survival",
-  name: "Strength Over Survival",
-  colorways: ["black", "white", "grey"],
-  images: [HOODIE_LOAD_BACK],
-  tagline: "Forged through the worst of it.",
-};
+export function getDesignColorways(d: Design): Colorway[] {
+  return Object.keys(d.imagesByColorway) as Colorway[];
+}
 
-const D_IRON_OVER_ILLNESS: Design = {
-  id: "iron-over-illness",
-  name: "Iron Over Illness",
-  colorways: ["black", "white", "grey"],
-  images: [HOODIE_LOAD_BACK],
-  tagline: "Heavy days. Heavier reps.",
-};
+export function getDesignImages(d: Design, c: Colorway): string[] {
+  return (
+    d.imagesByColorway[c] ??
+    Object.values(d.imagesByColorway)[0] ??
+    []
+  );
+}
 
-const D_MENTAL_STRENGTH_GREEN: Design = {
-  id: "mental-strength-is-trained-green",
-  name: "Mental Strength Is Trained — Green",
-  colorways: ["black", "grey"],
-  images: [HOODIE_CREST_FRONT, HOODIE_LOAD_BACK],
-  tagline: "Train the mind like the body.",
-};
-
-const D_MENTAL_STRENGTH_PINK: Design = {
-  id: "mental-strength-is-trained-pink",
-  name: "Mental Strength Is Trained — White / Pink",
-  colorways: ["white"],
-  images: [HOODIE_CREST_FRONT],
-  tagline: "Train the mind like the body.",
-};
-
-const D_LOAD_THE_BAR_ORANGE: Design = {
-  id: "load-the-bar-orange",
-  name: "Load The Bar / Unload The Mind — Orange",
-  colorways: ["black", "white", "grey", "tan"],
-  images: [HOODIE_LOAD_BACK, HOODIE_CREST_FRONT],
-  tagline: "Load the bar. Unload the mind.",
-};
-
-const D_LOAD_THE_BAR_RED: Design = {
-  id: "load-the-bar-red",
-  name: "Load The Bar / Unload The Mind — Red",
-  colorways: ["black", "white", "grey"],
-  images: [HOODIE_LOAD_BACK],
-  tagline: "Load the bar. Unload the mind.",
-};
-
-const D_DMK_CREST: Design = {
-  id: "dmk-crest",
-  name: "DMK Crest",
-  colorways: ["black", "white", "grey"],
-  images: [HOODIE_CREST_FRONT],
-  tagline: "House mark.",
-};
-
-// Trucker hat — only black is photographed for now.
-const D_HAT_DMK_BLACK: Design = {
-  id: "trucker-dmk-black",
-  name: "DMK Trucker — Black",
-  colorways: ["black"],
-  images: [HAT_BLACK],
-  tagline: "Mesh back. House crest.",
-};
-
-export const PRODUCTS: Product[] = [
-  {
-    slug: "hoodie",
-    type: "hoodie",
-    name: "DMK Hoodie",
-    price: 40,
-    designs: [
-      D_LOAD_THE_BAR_ORANGE,
-      { ...D_LOAD_THE_BAR_RED, images: [HOODIE_LOAD_BACK] },
-      D_MENTAL_STRENGTH_GREEN,
-      D_MENTAL_STRENGTH_PINK,
-      D_STRENGTH_OVER_SURVIVAL,
-      D_IRON_OVER_ILLNESS,
-      { ...D_DMK_CREST, images: [HOODIE_CREST_FRONT] },
-    ],
-  },
-  {
-    slug: "short-sleeve",
-    type: "short-sleeve",
-    name: "DMK Short Sleeve",
-    price: 25,
-    designs: [
-      { ...D_LOAD_THE_BAR_ORANGE, images: [TEE_LOAD_BACK, TEE_CREST_FRONT] },
-      { ...D_LOAD_THE_BAR_RED, images: [TEE_LOAD_BACK] },
-      { ...D_MENTAL_STRENGTH_GREEN, images: [TEE_CREST_FRONT, TEE_LOAD_BACK] },
-      { ...D_MENTAL_STRENGTH_PINK, images: [TEE_CREST_FRONT] },
-      { ...D_STRENGTH_OVER_SURVIVAL, images: [TEE_LOAD_BACK] },
-      { ...D_IRON_OVER_ILLNESS, images: [TEE_LOAD_BACK] },
-      { ...D_DMK_CREST, images: [TEE_CREST_FRONT] },
-    ],
-  },
-  {
-    slug: "long-sleeve",
-    type: "long-sleeve",
-    name: "DMK Long Sleeve",
-    price: 30,
-    // No long-sleeve photography yet — every design renders as the placeholder.
-    designs: [
-      { ...D_LOAD_THE_BAR_ORANGE, images: [LONG_SLEEVE_PLACEHOLDER] },
-      { ...D_LOAD_THE_BAR_RED, images: [LONG_SLEEVE_PLACEHOLDER] },
-      { ...D_MENTAL_STRENGTH_GREEN, images: [LONG_SLEEVE_PLACEHOLDER] },
-      { ...D_MENTAL_STRENGTH_PINK, images: [LONG_SLEEVE_PLACEHOLDER] },
-      { ...D_STRENGTH_OVER_SURVIVAL, images: [LONG_SLEEVE_PLACEHOLDER] },
-      { ...D_IRON_OVER_ILLNESS, images: [LONG_SLEEVE_PLACEHOLDER] },
-      { ...D_DMK_CREST, images: [LONG_SLEEVE_PLACEHOLDER] },
-    ],
-  },
-  {
-    slug: "trucker-hat",
-    type: "hat",
-    name: "DMK Trucker Hat",
-    price: 20,
-    designs: [D_HAT_DMK_BLACK],
-  },
-];
+export function getPrimaryImage(d: Design): string {
+  const first = Object.values(d.imagesByColorway)[0];
+  return first?.[0] ?? "/brand/logo-silver.png";
+}
 
 export function getProductBySlug(slug: string): Product | undefined {
   return PRODUCTS.find((p) => p.slug === slug);
@@ -185,14 +72,152 @@ export function getProductBySlug(slug: string): Product | undefined {
 
 export function getAllColorways(product: Product): Colorway[] {
   const set = new Set<Colorway>();
-  for (const d of product.designs) for (const c of d.colorways) set.add(c);
+  for (const d of product.designs)
+    for (const c of getDesignColorways(d)) set.add(c);
   return Array.from(set);
 }
 
-/**
- * Sizes are universal across apparel; hats are one-size-fits-all (no size picker).
- */
+/** Sizes are universal for apparel; hats are one-size (no size picker). */
 export function getSizesFor(type: ProductType): readonly Size[] | null {
   if (type === "hat") return null;
   return SIZES;
 }
+
+// --- catalog --------------------------------------------------------------
+
+// Asset paths under /public/
+const P = {
+  // Studio shots (front + back) we have for the black hoodie + short-sleeve
+  hoodieLoadBack: "/products/hoodie-load-the-bar-black-back.jpg",
+  hoodieCrestFront: "/products/hoodie-dmk-crest-black-front.jpg",
+  teeLoadBack: "/products/short-sleeve-load-the-bar-black-back.jpg",
+  teeCrestFront: "/products/short-sleeve-dmk-crest-black-front.jpg",
+
+  // Design renders from the brief screenshot
+  strengthSurvivalBlack: "/products/strength-survival-black.jpg",
+  ironOverIllnessBlack: "/products/iron-over-illness-black.jpg",
+  mentalGreenBlack: "/products/mental-strength-green-black.jpg",
+  mentalGreenBlackAlt: "/products/mental-strength-green-black-alt.jpg",
+  mentalPinkBlack: "/products/mental-strength-pink-black.jpg",
+  mentalPinkWhite: "/products/mental-strength-pink-white.jpg",
+  loadOrangeTan: "/products/load-the-bar-orange-tan.jpg",
+  loadRedBlack: "/products/load-the-bar-red-black.jpg",
+  loadGreenBlack: "/products/load-the-bar-green-black.jpg",
+
+  hatBlack: "/products/trucker-hat-dmk-black.jpg",
+  longSleevePlaceholder: "/products/long-sleeve-placeholder.jpg",
+};
+
+const HOODIE_DESIGNS: Design[] = [
+  {
+    id: "load-the-bar-orange",
+    name: "Load The Bar — Orange Cross",
+    imagesByColorway: {
+      tan: [P.loadOrangeTan],
+      black: [P.hoodieLoadBack],
+    },
+    tagline: "Load the bar. Unload the mind.",
+  },
+  {
+    id: "load-the-bar-red",
+    name: "Load The Bar — Red",
+    imagesByColorway: {
+      black: [P.loadRedBlack],
+    },
+    tagline: "Load the bar. Unload the mind.",
+  },
+  {
+    id: "load-the-bar-green",
+    name: "Load The Bar — Green Ribbon",
+    imagesByColorway: {
+      black: [P.loadGreenBlack],
+    },
+    tagline: "Load the bar. Unload the mind.",
+  },
+  {
+    id: "mental-strength-green",
+    name: "Mental Strength Is Trained — Green",
+    imagesByColorway: {
+      black: [P.mentalGreenBlack, P.mentalGreenBlackAlt],
+    },
+    tagline: "Train the mind like the body.",
+  },
+  {
+    id: "mental-strength-pink",
+    name: "Mental Strength Is Trained — Hearts",
+    imagesByColorway: {
+      white: [P.mentalPinkWhite],
+      black: [P.mentalPinkBlack],
+    },
+    tagline: "Train the mind like the body.",
+  },
+  {
+    id: "strength-is-survival",
+    name: "Strength Is Survival",
+    imagesByColorway: {
+      black: [P.strengthSurvivalBlack],
+    },
+    tagline: "Forged through the worst of it.",
+  },
+  {
+    id: "iron-over-illness",
+    name: "Iron Over Illness",
+    imagesByColorway: {
+      black: [P.ironOverIllnessBlack],
+    },
+    tagline: "Heavy days. Heavier reps.",
+  },
+  {
+    id: "dmk-crest",
+    name: "DMK Crest",
+    imagesByColorway: {
+      black: [P.hoodieCrestFront],
+    },
+    tagline: "House mark.",
+  },
+];
+
+const SHORT_SLEEVE_DESIGNS: Design[] = [
+  {
+    id: "load-the-bar-orange",
+    name: "Load The Bar — Orange Cross",
+    imagesByColorway: {
+      black: [P.teeLoadBack],
+    },
+    tagline: "Load the bar. Unload the mind.",
+  },
+  {
+    id: "dmk-crest",
+    name: "DMK Crest",
+    imagesByColorway: {
+      black: [P.teeCrestFront],
+    },
+    tagline: "House mark.",
+  },
+];
+
+// Long-sleeve has no real photography yet — same designs as hoodies but
+// every variant renders a "Photos Coming Soon" placeholder.
+const LONG_SLEEVE_DESIGNS: Design[] = HOODIE_DESIGNS.map((d) => {
+  const placeholderByColor: Partial<Record<Colorway, string[]>> = {};
+  for (const c of getDesignColorways(d)) {
+    placeholderByColor[c] = [P.longSleevePlaceholder];
+  }
+  return { ...d, imagesByColorway: placeholderByColor };
+});
+
+const HAT_DESIGNS: Design[] = [
+  {
+    id: "trucker-dmk-black",
+    name: "DMK Trucker",
+    imagesByColorway: { black: [P.hatBlack] },
+    tagline: "Mesh back. House crest.",
+  },
+];
+
+export const PRODUCTS: Product[] = [
+  { slug: "hoodie", type: "hoodie", name: "DMK Hoodie", price: 40, designs: HOODIE_DESIGNS },
+  { slug: "short-sleeve", type: "short-sleeve", name: "DMK Short Sleeve", price: 25, designs: SHORT_SLEEVE_DESIGNS },
+  { slug: "long-sleeve", type: "long-sleeve", name: "DMK Long Sleeve", price: 30, designs: LONG_SLEEVE_DESIGNS },
+  { slug: "trucker-hat", type: "hat", name: "DMK Trucker Hat", price: 20, designs: HAT_DESIGNS },
+];
