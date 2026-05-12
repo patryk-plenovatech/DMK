@@ -53,8 +53,8 @@ export default function CheckoutPage() {
         <Image
           src="/brand/logo-silver.png"
           alt="DMK Apparel"
-          width={520}
-          height={340}
+          width={414}
+          height={289}
           priority
           className="h-auto w-36 sm:w-44"
         />

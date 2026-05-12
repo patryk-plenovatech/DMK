@@ -27,8 +27,8 @@ export function Hero() {
           <Image
             src="/brand/logo-silver.png"
             alt="DMK Apparel crest"
-            width={520}
-            height={340}
+            width={414}
+            height={289}
             priority
             className="mx-auto h-auto w-44 sm:w-56 md:w-64"
           />

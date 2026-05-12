@@ -30,8 +30,8 @@ export function Nav() {
           <Image
             src="/brand/logo-silver.png"
             alt="DMK Apparel"
-            width={56}
-            height={36}
+            width={414}
+            height={289}
             priority
             className="h-9 w-auto"
           />
