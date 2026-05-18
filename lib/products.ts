@@ -1,13 +1,26 @@
 // Single source of truth for DMK Apparel product catalog.
 //
-// Catalog model: each design = its own product. Within a product, the
-// `Colorway` picker swaps between **print colors** (orange/red/green/pink) for
-// apparel back-prints, **shirt colors** (black/white) for long sleeves where
-// the same design exists on both, or **logo colors** (black/gold) for hats.
+// Catalog model
+// -------------
+// Each design = its own product. A product carries multiple dimensions of
+// customer choice that are independent of each other:
 //
-// Each colorway's image array is ordered [back, front] — the design-bearing
-// back of the garment first, the DMK crest front second. For products without
-// a back/front pair (hats, backpacks), the array is a single image.
+//   1. PRINT COLOR (Colorway, via design.imagesByColorway) — the ink color on
+//      the design (orange / red / green / pink / gold / silver). For the DMK
+//      crest long-sleeve, the colorway happens to be the SHIRT color since
+//      the design itself is one color.
+//   2. SHIRT COLOR (product.shirtColors) — the garment fabric color
+//      (black / white / tan). Independent of print color; the customer can
+//      mix any print onto any shirt color. The orange Load-The-Bar print is
+//      the only one with a tan option, expressed via shirtColorsByPrintColor.
+//   3. PLACEMENT (product.placements) — design-on-front (cheaper) vs.
+//      DMK-crest-front + design-on-back (more expensive). Long sleeves are
+//      priced the same for both placements.
+//   4. SIZE — universal apparel sizes; hats and backpacks are one-size.
+//
+// Each colorway's image array is ordered [back, front] — design-bearing back
+// first, DMK crest front second. Single-image arrays for products without a
+// front/back pair (hats, backpacks).
 
 export const SIZES = ["S", "M", "L", "XL", "2XL", "3XL"] as const;
 export type Size = (typeof SIZES)[number];
@@ -62,6 +75,24 @@ export const PRODUCT_TYPE_LABEL: Record<ProductType, string> = {
   backpack: "Backpack",
 };
 
+export type Placement = "front-only" | "back-with-crest";
+
+export const PLACEMENT_LABEL: Record<Placement, string> = {
+  "front-only": "Design on Front",
+  "back-with-crest": "DMK Crest Front + Design on Back",
+};
+
+export const PLACEMENT_BLURB: Record<Placement, string> = {
+  "front-only": "Main design printed on the front. No back print.",
+  "back-with-crest":
+    "Small DMK crest on the front-left chest, main design on the back.",
+};
+
+export type PlacementOption = {
+  id: Placement;
+  price: number;
+};
+
 export type Design = {
   id: string;
   name: string;
@@ -73,7 +104,11 @@ export type Product = {
   slug: string;
   type: ProductType;
   name: string;
-  price: number;
+  placements: PlacementOption[];
+  /** Shirt fabric colors — independent of print color. Absent = no picker. */
+  shirtColors?: Colorway[];
+  /** Per-print-color overrides for shirt colors (e.g. orange print also offers tan). */
+  shirtColorsByPrintColor?: Partial<Record<Colorway, Colorway[]>>;
   designs: Design[];
 };
 
@@ -107,11 +142,68 @@ export function getAllColorways(product: Product): Colorway[] {
   return Array.from(set);
 }
 
-/** Sizes are universal for apparel; hats and backpacks are one-size (no size picker). */
+/** Returns shirt colors available for a given print color, falling back to
+ *  the product's default `shirtColors`. Returns `undefined` when the product
+ *  doesn't expose a shirt-color picker at all (hats, backpacks, products
+ *  whose colorway IS the shirt color like the DMK crest long-sleeve). */
+export function getShirtColors(
+  product: Product,
+  printColor: Colorway,
+): Colorway[] | undefined {
+  if (!product.shirtColors) return undefined;
+  return product.shirtColorsByPrintColor?.[printColor] ?? product.shirtColors;
+}
+
+export function getMinPrice(product: Product): number {
+  return Math.min(...product.placements.map((p) => p.price));
+}
+
+export function getMaxPrice(product: Product): number {
+  return Math.max(...product.placements.map((p) => p.price));
+}
+
+export function getPlacementPrice(
+  product: Product,
+  placement: Placement,
+): number {
+  return (
+    product.placements.find((p) => p.id === placement)?.price ??
+    product.placements[0].price
+  );
+}
+
+/** Sizes are universal for apparel; hats and backpacks are one-size. */
 export function getSizesFor(type: ProductType): readonly Size[] | null {
   if (type === "hat" || type === "backpack") return null;
   return SIZES;
 }
+
+// --- pricing tiers --------------------------------------------------------
+
+const HOODIE_PLACEMENTS: PlacementOption[] = [
+  { id: "front-only", price: 35 },
+  { id: "back-with-crest", price: 40 },
+];
+
+const SHORT_SLEEVE_PLACEMENTS: PlacementOption[] = [
+  { id: "front-only", price: 25 },
+  { id: "back-with-crest", price: 30 },
+];
+
+const LONG_SLEEVE_PLACEMENTS: PlacementOption[] = [
+  { id: "front-only", price: 30 },
+  { id: "back-with-crest", price: 30 },
+];
+
+const HAT_PLACEMENTS: PlacementOption[] = [
+  { id: "back-with-crest", price: 20 },
+];
+
+const BACKPACK_PLACEMENTS: PlacementOption[] = [
+  { id: "back-with-crest", price: 45 },
+];
+
+const SHIRT_COLORS_DEFAULT: Colorway[] = ["black", "white"];
 
 // --- asset paths ----------------------------------------------------------
 
@@ -157,8 +249,7 @@ const P = {
 
 // --- catalog --------------------------------------------------------------
 // Each design = its own product. The `designs` array on each Product carries
-// exactly one Design — the design IS the product. Front of every apparel
-// piece is the DMK crest, so each colorway's image array is [back, front].
+// exactly one Design — the design IS the product.
 
 const designOnly = (
   id: string,
@@ -173,7 +264,10 @@ const HOODIE_LOAD_THE_BAR: Product = {
   slug: "hoodie-load-the-bar",
   type: "hoodie",
   name: "Load The Bar Hoodie",
-  price: 40,
+  placements: HOODIE_PLACEMENTS,
+  shirtColors: SHIRT_COLORS_DEFAULT,
+  // Orange print is the only one that also comes on a tan hoodie.
+  shirtColorsByPrintColor: { orange: ["black", "white", "tan"] },
   designs: designOnly(
     "load-the-bar",
     "Load The Bar — Unload The Mind",
@@ -190,7 +284,8 @@ const HOODIE_MENTAL_STRENGTH: Product = {
   slug: "hoodie-mental-strength",
   type: "hoodie",
   name: "Mental Strength Is Trained Hoodie",
-  price: 40,
+  placements: HOODIE_PLACEMENTS,
+  shirtColors: SHIRT_COLORS_DEFAULT,
   designs: designOnly(
     "mental-strength",
     "Mental Strength Is Trained",
@@ -206,7 +301,8 @@ const HOODIE_STRENGTH_IS_SURVIVAL: Product = {
   slug: "hoodie-strength-is-survival",
   type: "hoodie",
   name: "Strength Is Survival Hoodie",
-  price: 40,
+  placements: HOODIE_PLACEMENTS,
+  shirtColors: SHIRT_COLORS_DEFAULT,
   designs: designOnly(
     "strength-is-survival",
     "Strength Is Survival",
@@ -221,7 +317,8 @@ const HOODIE_IRON_OVER_ILLNESS: Product = {
   slug: "hoodie-iron-over-illness",
   type: "hoodie",
   name: "Iron Over Illness Hoodie",
-  price: 40,
+  placements: HOODIE_PLACEMENTS,
+  shirtColors: SHIRT_COLORS_DEFAULT,
   designs: designOnly(
     "iron-over-illness",
     "Iron Over Illness",
@@ -238,7 +335,9 @@ const SHORT_SLEEVE_LOAD_THE_BAR: Product = {
   slug: "short-sleeve-load-the-bar",
   type: "short-sleeve",
   name: "Load The Bar Short Sleeve",
-  price: 25,
+  placements: SHORT_SLEEVE_PLACEMENTS,
+  shirtColors: SHIRT_COLORS_DEFAULT,
+  shirtColorsByPrintColor: { orange: ["black", "white", "tan"] },
   designs: designOnly(
     "load-the-bar",
     "Load The Bar — Unload The Mind",
@@ -254,7 +353,8 @@ const SHORT_SLEEVE_MENTAL_STRENGTH: Product = {
   slug: "short-sleeve-mental-strength",
   type: "short-sleeve",
   name: "Mental Strength Is Trained Short Sleeve",
-  price: 25,
+  placements: SHORT_SLEEVE_PLACEMENTS,
+  shirtColors: SHIRT_COLORS_DEFAULT,
   designs: designOnly(
     "mental-strength",
     "Mental Strength Is Trained",
@@ -270,7 +370,8 @@ const SHORT_SLEEVE_MENTAL_STRENGTH_HEARTS: Product = {
   slug: "short-sleeve-mental-strength-hearts",
   type: "short-sleeve",
   name: "Mental Strength Is Trained — Hearts",
-  price: 25,
+  placements: SHORT_SLEEVE_PLACEMENTS,
+  shirtColors: SHIRT_COLORS_DEFAULT,
   designs: designOnly(
     "mental-strength-hearts",
     "Mental Strength Is Trained — Hearts & Butterflies",
@@ -287,7 +388,9 @@ const LONG_SLEEVE_LOAD_THE_BAR: Product = {
   slug: "long-sleeve-load-the-bar",
   type: "long-sleeve",
   name: "Load The Bar Long Sleeve",
-  price: 30,
+  placements: LONG_SLEEVE_PLACEMENTS,
+  shirtColors: SHIRT_COLORS_DEFAULT,
+  shirtColorsByPrintColor: { orange: ["black", "white", "tan"] },
   designs: designOnly(
     "load-the-bar",
     "Load The Bar — Unload The Mind",
@@ -303,7 +406,8 @@ const LONG_SLEEVE_MENTAL_STRENGTH: Product = {
   slug: "long-sleeve-mental-strength",
   type: "long-sleeve",
   name: "Mental Strength Is Trained Long Sleeve",
-  price: 30,
+  placements: LONG_SLEEVE_PLACEMENTS,
+  shirtColors: SHIRT_COLORS_DEFAULT,
   designs: designOnly(
     "mental-strength",
     "Mental Strength Is Trained",
@@ -319,7 +423,8 @@ const LONG_SLEEVE_MENTAL_STRENGTH_HEARTS: Product = {
   slug: "long-sleeve-mental-strength-hearts",
   type: "long-sleeve",
   name: "Mental Strength Is Trained — Hearts Long Sleeve",
-  price: 30,
+  placements: LONG_SLEEVE_PLACEMENTS,
+  shirtColors: SHIRT_COLORS_DEFAULT,
   designs: designOnly(
     "mental-strength-hearts",
     "Mental Strength Is Trained — Hearts & Butterflies",
@@ -330,11 +435,13 @@ const LONG_SLEEVE_MENTAL_STRENGTH_HEARTS: Product = {
   ),
 };
 
+// DMK Crest long-sleeve: its colorway IS the shirt color (black vs. white),
+// so no separate shirt-color picker.
 const LONG_SLEEVE_DMK_CREST: Product = {
   slug: "long-sleeve-dmk-crest",
   type: "long-sleeve",
   name: "DMK Crest Long Sleeve",
-  price: 30,
+  placements: LONG_SLEEVE_PLACEMENTS,
   designs: designOnly(
     "dmk-crest",
     "DMK Crest",
@@ -352,7 +459,7 @@ const TRUCKER_HAT_DMK: Product = {
   slug: "trucker-hat-dmk",
   type: "hat",
   name: "DMK Trucker Hat",
-  price: 20,
+  placements: HAT_PLACEMENTS,
   designs: designOnly(
     "trucker-dmk",
     "DMK Trucker",
@@ -370,7 +477,7 @@ const BACKPACK_LOAD_THE_BAR: Product = {
   slug: "backpack-load-the-bar",
   type: "backpack",
   name: "Load The Bar Backpack",
-  price: 45,
+  placements: BACKPACK_PLACEMENTS,
   designs: designOnly(
     "load-the-bar",
     "Load The Bar — Unload The Mind",
@@ -385,7 +492,7 @@ const BACKPACK_MENTAL_STRENGTH: Product = {
   slug: "backpack-mental-strength",
   type: "backpack",
   name: "Mental Strength Is Trained Backpack",
-  price: 45,
+  placements: BACKPACK_PLACEMENTS,
   designs: designOnly(
     "mental-strength",
     "Mental Strength Is Trained",

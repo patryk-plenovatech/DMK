@@ -2,19 +2,24 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Minus, Plus } from "lucide-react";
 import {
   COLORWAY_HEX,
   COLORWAY_LABEL,
+  PLACEMENT_BLURB,
+  PLACEMENT_LABEL,
   PRODUCT_TYPE_LABEL,
   SIZES,
-  type Product,
   type Colorway,
+  type Placement,
+  type Product,
   type Size,
   getDesignColorways,
   getDesignImages,
+  getPlacementPrice,
+  getShirtColors,
   getSizesFor,
 } from "@/lib/products";
 
@@ -28,13 +33,45 @@ export function ProductDetail({ product }: Props) {
   const designColorways = getDesignColorways(design);
 
   const [colorway, setColorway] = useState<Colorway>(designColorways[0]);
+
+  const shirtColorOptions = getShirtColors(product, colorway);
+  const [shirtColor, setShirtColor] = useState<Colorway | null>(
+    shirtColorOptions ? shirtColorOptions[0] : null,
+  );
+
+  const [placement, setPlacement] = useState<Placement>(
+    product.placements[0].id,
+  );
+
   const [size, setSize] = useState<Size | null>(
     getSizesFor(product.type) ? "M" : null,
   );
   const [qty, setQty] = useState(1);
   const [imageIdx, setImageIdx] = useState(0);
 
-  const images = getDesignImages(design, colorway);
+  // When the print color changes, the available shirt colors may shrink
+  // (e.g. tan disappears when leaving orange). Snap back to a valid shirt
+  // color if the current one is no longer offered.
+  useEffect(() => {
+    if (!shirtColorOptions) {
+      if (shirtColor !== null) setShirtColor(null);
+      return;
+    }
+    if (!shirtColor || !shirtColorOptions.includes(shirtColor)) {
+      setShirtColor(shirtColorOptions[0]);
+    }
+  }, [colorway, product]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When placement changes to front-only, hide the crest-front image since
+  // the front no longer carries the crest.
+  const images = useMemo(() => {
+    const all = getDesignImages(design, colorway);
+    if (placement === "front-only") return all.slice(0, 1);
+    return all;
+  }, [design, colorway, placement]);
+
+  const currentImage = images[imageIdx] ?? images[0];
+  const price = getPlacementPrice(product, placement);
 
   function selectDesign(id: string) {
     const next = product.designs.find((d) => d.id === id)!;
@@ -49,6 +86,11 @@ export function ProductDetail({ product }: Props) {
     setImageIdx(0);
   }
 
+  function selectPlacement(p: Placement) {
+    setPlacement(p);
+    setImageIdx(0);
+  }
+
   const sizesAvailable = getSizesFor(product.type);
 
   const checkoutHref = useMemo(() => {
@@ -56,13 +98,13 @@ export function ProductDetail({ product }: Props) {
       item: product.slug,
       design: design.id,
       color: colorway,
+      placement,
       qty: String(qty),
     });
     if (size) params.set("size", size);
+    if (shirtColor) params.set("shirt", shirtColor);
     return `/checkout?${params.toString()}`;
-  }, [product.slug, design.id, colorway, size, qty]);
-
-  const currentImage = images[imageIdx] ?? images[0];
+  }, [product.slug, design.id, colorway, shirtColor, placement, size, qty]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
@@ -79,7 +121,7 @@ export function ProductDetail({ product }: Props) {
         {/* Gallery */}
         <div>
           <motion.div
-            key={design.id + colorway + imageIdx}
+            key={design.id + colorway + placement + imageIdx}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4 }}
@@ -132,14 +174,13 @@ export function ProductDetail({ product }: Props) {
             {product.name.toUpperCase()}
           </h1>
           <p className="mt-3 font-display text-3xl tracking-wide text-dmk-green">
-            ${product.price}
+            ${price}
           </p>
           {design.tagline && (
             <p className="mt-3 text-foreground/65 italic">{design.tagline}</p>
           )}
 
-          {/* Design picker — hidden when the product has a single design
-              (each design is its own product in the new catalog model). */}
+          {/* Design picker — hidden when the product has a single design. */}
           {product.designs.length > 1 && (
             <div className="mt-10">
               <p className="font-display text-sm tracking-widest text-foreground/50">
@@ -167,34 +208,121 @@ export function ProductDetail({ product }: Props) {
             </div>
           )}
 
-          {/* Colorway picker — only colorways actually photographed */}
-          <div className="mt-10">
-            <p className="font-display text-sm tracking-widest text-foreground/50">
-              COLOR ·{" "}
-              <span className="text-foreground/80">
-                {COLORWAY_LABEL[colorway]}
-              </span>
-            </p>
-            <div className="mt-3 flex flex-wrap gap-3">
-              {designColorways.map((c) => {
-                const isActive = c === colorway;
-                return (
-                  <button
-                    key={c}
-                    onClick={() => selectColorway(c)}
-                    aria-label={COLORWAY_LABEL[c]}
-                    className={[
-                      "h-10 w-10 rounded-full border-2 transition-all",
-                      isActive
-                        ? "border-dmk-green scale-110"
-                        : "border-white/20 hover:border-white/40",
-                    ].join(" ")}
-                    style={{ backgroundColor: COLORWAY_HEX[c] }}
-                  />
-                );
-              })}
+          {/* Print color picker — drives which back-print is shown. */}
+          {designColorways.length > 1 && (
+            <div className="mt-10">
+              <p className="font-display text-sm tracking-widest text-foreground/50">
+                PRINT COLOR ·{" "}
+                <span className="text-foreground/80">
+                  {COLORWAY_LABEL[colorway]}
+                </span>
+              </p>
+              <div className="mt-3 flex flex-wrap gap-3">
+                {designColorways.map((c) => {
+                  const isActive = c === colorway;
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => selectColorway(c)}
+                      aria-label={COLORWAY_LABEL[c]}
+                      className={[
+                        "h-10 w-10 rounded-full border-2 transition-all",
+                        isActive
+                          ? "border-dmk-green scale-110"
+                          : "border-white/20 hover:border-white/40",
+                      ].join(" ")}
+                      style={{ backgroundColor: COLORWAY_HEX[c] }}
+                    />
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Shirt color picker — fabric color of the garment, independent
+              of print color. Hidden if the product doesn't expose one. */}
+          {shirtColorOptions && shirtColor && (
+            <div className="mt-10">
+              <p className="font-display text-sm tracking-widest text-foreground/50">
+                SHIRT COLOR ·{" "}
+                <span className="text-foreground/80">
+                  {COLORWAY_LABEL[shirtColor]}
+                </span>
+              </p>
+              <div className="mt-3 flex flex-wrap gap-3">
+                {shirtColorOptions.map((c) => {
+                  const isActive = c === shirtColor;
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => setShirtColor(c)}
+                      aria-label={COLORWAY_LABEL[c]}
+                      className={[
+                        "h-10 w-10 rounded-full border-2 transition-all",
+                        isActive
+                          ? "border-dmk-green scale-110"
+                          : "border-white/20 hover:border-white/40",
+                      ].join(" ")}
+                      style={{ backgroundColor: COLORWAY_HEX[c] }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Placement picker — design on front, or DMK crest front + back
+              print. Hidden when the product only offers one placement. */}
+          {product.placements.length > 1 && (
+            <div className="mt-10">
+              <p className="font-display text-sm tracking-widest text-foreground/50">
+                STYLE
+              </p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 max-w-2xl">
+                {product.placements.map((p) => {
+                  const isActive = p.id === placement;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => selectPlacement(p.id)}
+                      className={[
+                        "rounded-md border p-3 text-left transition-colors",
+                        isActive
+                          ? "border-dmk-green bg-dmk-green/10"
+                          : "border-white/10 hover:border-white/30",
+                      ].join(" ")}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span
+                          className={[
+                            "font-display text-sm tracking-wider",
+                            isActive
+                              ? "text-dmk-green"
+                              : "text-foreground/85",
+                          ].join(" ")}
+                        >
+                          {PLACEMENT_LABEL[p.id]}
+                        </span>
+                        <span
+                          className={[
+                            "font-display text-base tracking-wide",
+                            isActive
+                              ? "text-dmk-green"
+                              : "text-foreground/70",
+                          ].join(" ")}
+                        >
+                          ${p.price}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-foreground/55 leading-snug">
+                        {PLACEMENT_BLURB[p.id]}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Size picker */}
           {sizesAvailable && (

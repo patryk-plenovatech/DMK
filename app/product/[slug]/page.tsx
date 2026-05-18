@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ProductDetail } from "@/components/ProductDetail";
-import { PRODUCTS, getProductBySlug } from "@/lib/products";
+import { PRODUCTS, getMinPrice, getProductBySlug } from "@/lib/products";
 
 type Params = Promise<{ slug: string }>;
 
@@ -18,11 +18,12 @@ export async function generateMetadata({
   const product = getProductBySlug(slug);
   if (!product) return { title: "Not found" };
   const tagline = product.designs[0]?.tagline;
+  const fromPrice = `from $${getMinPrice(product)}`;
   return {
     title: product.name,
     description: tagline
-      ? `${product.name} — $${product.price}. ${tagline} DMK Apparel streetwear.`
-      : `${product.name} — $${product.price}. DMK Apparel streetwear.`,
+      ? `${product.name} — ${fromPrice}. ${tagline} DMK Apparel streetwear.`
+      : `${product.name} — ${fromPrice}. DMK Apparel streetwear.`,
   };
 }
 

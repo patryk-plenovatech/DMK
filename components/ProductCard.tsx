@@ -8,6 +8,8 @@ import {
   COLORWAY_LABEL,
   type Product,
   getAllColorways,
+  getMaxPrice,
+  getMinPrice,
   getPrimaryImage,
 } from "@/lib/products";
 
@@ -55,7 +57,9 @@ export function ProductCard({ product }: Props) {
           </div>
           <div className="text-right">
             <p className="font-display text-2xl tracking-wide text-dmk-green">
-              ${product.price}
+              {getMinPrice(product) === getMaxPrice(product)
+                ? `$${getMinPrice(product)}`
+                : `from $${getMinPrice(product)}`}
             </p>
             <div className="mt-2 flex items-center justify-end gap-1.5">
               {colorways.map((c) => (
