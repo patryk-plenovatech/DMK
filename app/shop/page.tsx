@@ -10,7 +10,7 @@ import {
 export const metadata: Metadata = {
   title: "Shop",
   description:
-    "Hoodies, tees, long sleeves, and trucker hats from DMK Apparel. Streetwear built for mental strength.",
+    "Hoodies, tees, long sleeves, trucker hats, and backpacks from DMK Apparel. Streetwear built for mental strength.",
 };
 
 const TYPE_FILTERS: { value: ProductType | "all"; label: string }[] = [
@@ -19,6 +19,7 @@ const TYPE_FILTERS: { value: ProductType | "all"; label: string }[] = [
   { value: "short-sleeve", label: "SHORT SLEEVE" },
   { value: "long-sleeve", label: "LONG SLEEVE" },
   { value: "hat", label: "HATS" },
+  { value: "backpack", label: "BACKPACKS" },
 ];
 
 type ShopSearchParams = Promise<{ type?: string }>;
@@ -47,8 +48,8 @@ export default async function ShopPage({
         </h1>
         <p className="mt-4 max-w-xl text-foreground/65">
           Every piece supports the message: train the body to train the mind.
-          Designs available across our hoodies, tees, long sleeves, and trucker
-          hats.
+          Designs available across our hoodies, tees, long sleeves, trucker
+          hats, and backpacks.
         </p>
       </header>
 

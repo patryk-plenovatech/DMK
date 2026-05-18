@@ -23,13 +23,19 @@ export const COLORWAY_HEX: Record<Colorway, string> = {
   tan: "#c8a679",
 };
 
-export type ProductType = "hoodie" | "short-sleeve" | "long-sleeve" | "hat";
+export type ProductType =
+  | "hoodie"
+  | "short-sleeve"
+  | "long-sleeve"
+  | "hat"
+  | "backpack";
 
 export const PRODUCT_TYPE_LABEL: Record<ProductType, string> = {
   hoodie: "Hoodie",
   "short-sleeve": "Short Sleeve",
   "long-sleeve": "Long Sleeve",
   hat: "Trucker Hat",
+  backpack: "Backpack",
 };
 
 export type Design = {
@@ -77,9 +83,9 @@ export function getAllColorways(product: Product): Colorway[] {
   return Array.from(set);
 }
 
-/** Sizes are universal for apparel; hats are one-size (no size picker). */
+/** Sizes are universal for apparel; hats and backpacks are one-size (no size picker). */
 export function getSizesFor(type: ProductType): readonly Size[] | null {
-  if (type === "hat") return null;
+  if (type === "hat" || type === "backpack") return null;
   return SIZES;
 }
 
@@ -93,6 +99,13 @@ const P = {
   teeLoadBack: "/products/short-sleeve-load-the-bar-black-back.jpg",
   teeCrestFront: "/products/short-sleeve-dmk-crest-black-front.jpg",
 
+  // New real-product photography for short-sleeve back prints
+  teeLoadOrangeBack: "/products/short-sleeve-load-the-bar-orange-black-back.jpg",
+  teeLoadGreenBack: "/products/short-sleeve-load-the-bar-green-black-back.jpg",
+  teeMentalGreenBack: "/products/short-sleeve-mental-strength-green-black-back.jpg",
+  teeMentalGreenButterfliesBack: "/products/short-sleeve-mental-strength-green-butterflies-black-back.jpg",
+  teeMentalPinkWhiteBack: "/products/short-sleeve-mental-strength-pink-white-back.jpg",
+
   // Design renders from the brief screenshot
   strengthSurvivalBlack: "/products/strength-survival-black.jpg",
   ironOverIllnessBlack: "/products/iron-over-illness-black.jpg",
@@ -104,8 +117,18 @@ const P = {
   loadRedBlack: "/products/load-the-bar-red-black.jpg",
   loadGreenBlack: "/products/load-the-bar-green-black.jpg",
 
-  hatBlack: "/products/trucker-hat-dmk-black.jpg",
+  // Hats
+  hatSilver: "/products/trucker-hat-dmk-silver.jpg",
+  hatGold: "/products/trucker-hat-dmk-gold.jpg",
+
+  // Long-sleeve real product photography
+  longSleeveCrestPair: "/products/long-sleeve-dmk-crest-pair.jpg",
+  longSleeveLineup: "/products/long-sleeve-lineup-black.jpg",
   longSleevePlaceholder: "/products/long-sleeve-placeholder.jpg",
+
+  // Backpacks
+  backpackLoadOrange: "/products/backpack-load-the-bar-orange-black.jpg",
+  backpackMentalGreen: "/products/backpack-mental-strength-green-black.jpg",
 };
 
 const HOODIE_DESIGNS: Design[] = [
@@ -182,9 +205,41 @@ const SHORT_SLEEVE_DESIGNS: Design[] = [
     id: "load-the-bar-orange",
     name: "Load The Bar — Orange Cross",
     imagesByColorway: {
-      black: [P.teeLoadBack],
+      black: [P.teeLoadOrangeBack],
     },
     tagline: "Load the bar. Unload the mind.",
+  },
+  {
+    id: "load-the-bar-green",
+    name: "Load The Bar — Green Ribbon",
+    imagesByColorway: {
+      black: [P.teeLoadGreenBack],
+    },
+    tagline: "Load the bar. Unload the mind.",
+  },
+  {
+    id: "mental-strength-green",
+    name: "Mental Strength Is Trained — Green",
+    imagesByColorway: {
+      black: [P.teeMentalGreenBack],
+    },
+    tagline: "Train the mind like the body.",
+  },
+  {
+    id: "mental-strength-green-butterflies",
+    name: "Mental Strength Is Trained — Green & Butterflies",
+    imagesByColorway: {
+      black: [P.teeMentalGreenButterfliesBack],
+    },
+    tagline: "Train the mind like the body.",
+  },
+  {
+    id: "mental-strength-pink",
+    name: "Mental Strength Is Trained — Hearts",
+    imagesByColorway: {
+      white: [P.teeMentalPinkWhiteBack],
+    },
+    tagline: "Train the mind like the body.",
   },
   {
     id: "dmk-crest",
@@ -196,22 +251,55 @@ const SHORT_SLEEVE_DESIGNS: Design[] = [
   },
 ];
 
-// Long-sleeve has no real photography yet — same designs as hoodies but
-// every variant renders a "Photos Coming Soon" placeholder.
-const LONG_SLEEVE_DESIGNS: Design[] = HOODIE_DESIGNS.map((d) => {
-  const placeholderByColor: Partial<Record<Colorway, string[]>> = {};
-  for (const c of getDesignColorways(d)) {
-    placeholderByColor[c] = [P.longSleevePlaceholder];
-  }
-  return { ...d, imagesByColorway: placeholderByColor };
-});
+// Long-sleeve: real photography for the DMK crest pair; the rest of the design
+// catalog mirrors the hoodie lineup but shows the "lineup" group shot as a
+// placeholder until each design is photographed individually.
+const LONG_SLEEVE_DESIGNS: Design[] = [
+  {
+    id: "dmk-crest",
+    name: "DMK Crest",
+    imagesByColorway: {
+      black: [P.longSleeveCrestPair],
+      white: [P.longSleeveCrestPair],
+    },
+    tagline: "House mark.",
+  },
+  ...HOODIE_DESIGNS.filter((d) => d.id !== "dmk-crest").map((d) => {
+    const lineupByColor: Partial<Record<Colorway, string[]>> = {};
+    for (const c of getDesignColorways(d)) {
+      lineupByColor[c] = [P.longSleeveLineup];
+    }
+    return { ...d, imagesByColorway: lineupByColor };
+  }),
+];
 
 const HAT_DESIGNS: Design[] = [
   {
-    id: "trucker-dmk-black",
-    name: "DMK Trucker",
-    imagesByColorway: { black: [P.hatBlack] },
+    id: "trucker-dmk-silver",
+    name: "DMK Trucker — Silver",
+    imagesByColorway: { black: [P.hatSilver] },
     tagline: "Mesh back. House crest.",
+  },
+  {
+    id: "trucker-dmk-gold",
+    name: "DMK Trucker — Gold",
+    imagesByColorway: { black: [P.hatGold] },
+    tagline: "Mesh back. Gilded crest.",
+  },
+];
+
+const BACKPACK_DESIGNS: Design[] = [
+  {
+    id: "load-the-bar-orange",
+    name: "Load The Bar — Orange Cross",
+    imagesByColorway: { black: [P.backpackLoadOrange] },
+    tagline: "Load the bar. Unload the mind.",
+  },
+  {
+    id: "mental-strength-green",
+    name: "Mental Strength Is Trained — Green",
+    imagesByColorway: { black: [P.backpackMentalGreen] },
+    tagline: "Train the mind like the body.",
   },
 ];
 
@@ -220,4 +308,5 @@ export const PRODUCTS: Product[] = [
   { slug: "short-sleeve", type: "short-sleeve", name: "DMK Short Sleeve", price: 25, designs: SHORT_SLEEVE_DESIGNS },
   { slug: "long-sleeve", type: "long-sleeve", name: "DMK Long Sleeve", price: 30, designs: LONG_SLEEVE_DESIGNS },
   { slug: "trucker-hat", type: "hat", name: "DMK Trucker Hat", price: 20, designs: HAT_DESIGNS },
+  { slug: "backpack", type: "backpack", name: "DMK Backpack", price: 45, designs: BACKPACK_DESIGNS },
 ];
