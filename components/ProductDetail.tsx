@@ -138,34 +138,37 @@ export function ProductDetail({ product }: Props) {
             <p className="mt-3 text-foreground/65 italic">{design.tagline}</p>
           )}
 
-          {/* Design picker */}
-          <div className="mt-10">
-            <p className="font-display text-sm tracking-widest text-foreground/50">
-              DESIGN
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {product.designs.map((d) => {
-                const isActive = d.id === designId;
-                return (
-                  <button
-                    key={d.id}
-                    onClick={() => selectDesign(d.id)}
-                    className={[
-                      "rounded-md border px-3 py-2 text-sm transition-colors",
-                      isActive
-                        ? "border-dmk-green bg-dmk-green/10 text-dmk-green"
-                        : "border-white/10 text-foreground/80 hover:border-white/30",
-                    ].join(" ")}
-                  >
-                    {d.name}
-                  </button>
-                );
-              })}
+          {/* Design picker — hidden when the product has a single design
+              (each design is its own product in the new catalog model). */}
+          {product.designs.length > 1 && (
+            <div className="mt-10">
+              <p className="font-display text-sm tracking-widest text-foreground/50">
+                DESIGN
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {product.designs.map((d) => {
+                  const isActive = d.id === designId;
+                  return (
+                    <button
+                      key={d.id}
+                      onClick={() => selectDesign(d.id)}
+                      className={[
+                        "rounded-md border px-3 py-2 text-sm transition-colors",
+                        isActive
+                          ? "border-dmk-green bg-dmk-green/10 text-dmk-green"
+                          : "border-white/10 text-foreground/80 hover:border-white/30",
+                      ].join(" ")}
+                    >
+                      {d.name}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Colorway picker — only colorways actually photographed */}
-          <div className="mt-8">
+          <div className="mt-10">
             <p className="font-display text-sm tracking-widest text-foreground/50">
               COLOR ·{" "}
               <span className="text-foreground/80">

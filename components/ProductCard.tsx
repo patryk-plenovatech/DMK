@@ -48,8 +48,9 @@ export function ProductCard({ product }: Props) {
               {product.name.toUpperCase()}
             </h3>
             <p className="mt-2 text-sm text-foreground/60">
-              {product.designs.length} design
-              {product.designs.length === 1 ? "" : "s"}
+              {colorways.length === 1
+                ? COLORWAY_LABEL[colorways[0]]
+                : `${colorways.length} colors`}
             </p>
           </div>
           <div className="text-right">

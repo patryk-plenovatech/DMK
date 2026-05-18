@@ -17,9 +17,12 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = getProductBySlug(slug);
   if (!product) return { title: "Not found" };
+  const tagline = product.designs[0]?.tagline;
   return {
     title: product.name,
-    description: `${product.name} — $${product.price}. ${product.designs.length} designs. DMK Apparel streetwear.`,
+    description: tagline
+      ? `${product.name} — $${product.price}. ${tagline} DMK Apparel streetwear.`
+      : `${product.name} — $${product.price}. DMK Apparel streetwear.`,
   };
 }
 

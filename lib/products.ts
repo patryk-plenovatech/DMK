@@ -1,19 +1,38 @@
 // Single source of truth for DMK Apparel product catalog.
-// A design's `imagesByColorway` map enumerates only the colorways we have
-// photography for — switching colors on the product page swaps the image.
-// Designs photographed in only one color still get one entry; that's the
-// only colorway customers can select for that design until more photos exist.
+//
+// Catalog model: each design = its own product. Within a product, the
+// `Colorway` picker swaps between **print colors** (orange/red/green/pink) for
+// apparel back-prints, **shirt colors** (black/white) for long sleeves where
+// the same design exists on both, or **logo colors** (black/gold) for hats.
+//
+// Each colorway's image array is ordered [back, front] — the design-bearing
+// back of the garment first, the DMK crest front second. For products without
+// a back/front pair (hats, backpacks), the array is a single image.
 
 export const SIZES = ["S", "M", "L", "XL", "2XL", "3XL"] as const;
 export type Size = (typeof SIZES)[number];
 
-export type Colorway = "black" | "white" | "grey" | "tan";
+export type Colorway =
+  | "black"
+  | "white"
+  | "grey"
+  | "tan"
+  | "orange"
+  | "red"
+  | "green"
+  | "pink"
+  | "gold";
 
 export const COLORWAY_LABEL: Record<Colorway, string> = {
   black: "Black",
   white: "White",
   grey: "Grey",
   tan: "Tan",
+  orange: "Orange",
+  red: "Red",
+  green: "Green",
+  pink: "Pink",
+  gold: "Gold",
 };
 
 export const COLORWAY_HEX: Record<Colorway, string> = {
@@ -21,6 +40,11 @@ export const COLORWAY_HEX: Record<Colorway, string> = {
   white: "#f5f5f5",
   grey: "#9ca3af",
   tan: "#c8a679",
+  orange: "#ea580c",
+  red: "#dc2626",
+  green: "#16a34a",
+  pink: "#ec4899",
+  gold: "#d4af37",
 };
 
 export type ProductType =
@@ -89,224 +113,309 @@ export function getSizesFor(type: ProductType): readonly Size[] | null {
   return SIZES;
 }
 
-// --- catalog --------------------------------------------------------------
+// --- asset paths ----------------------------------------------------------
 
-// Asset paths under /public/
 const P = {
-  // Studio shots (front + back) we have for the black hoodie + short-sleeve
-  hoodieLoadBack: "/products/hoodie-load-the-bar-black-back.jpg",
+  // Hoodie back-print designs
+  hoodieLoadOrange: "/products/load-the-bar-orange-tan.jpg",
+  hoodieLoadRed: "/products/load-the-bar-red-black.jpg",
+  hoodieLoadGreen: "/products/load-the-bar-green-black.jpg",
+  hoodieMentalGreen: "/products/mental-strength-green-black.jpg",
+  hoodieMentalGreenAlt: "/products/mental-strength-green-black-alt.jpg",
+  hoodieMentalPink: "/products/mental-strength-pink-black.jpg",
+  hoodieMentalPinkWhite: "/products/mental-strength-pink-white.jpg",
+  hoodieStrengthSurvival: "/products/strength-survival-black.jpg",
+  hoodieIronOverIllness: "/products/iron-over-illness-black.jpg",
   hoodieCrestFront: "/products/hoodie-dmk-crest-black-front.jpg",
-  teeLoadBack: "/products/short-sleeve-load-the-bar-black-back.jpg",
-  teeCrestFront: "/products/short-sleeve-dmk-crest-black-front.jpg",
+  hoodieLoadBackStudio: "/products/hoodie-load-the-bar-black-back.jpg",
 
-  // New real-product photography for short-sleeve back prints
+  // Short-sleeve back-print designs (real product photography)
   teeLoadOrangeBack: "/products/short-sleeve-load-the-bar-orange-black-back.jpg",
   teeLoadGreenBack: "/products/short-sleeve-load-the-bar-green-black-back.jpg",
   teeMentalGreenBack: "/products/short-sleeve-mental-strength-green-black-back.jpg",
   teeMentalGreenButterfliesBack: "/products/short-sleeve-mental-strength-green-butterflies-black-back.jpg",
   teeMentalPinkWhiteBack: "/products/short-sleeve-mental-strength-pink-white-back.jpg",
+  teeCrestFront: "/products/short-sleeve-dmk-crest-black-front.jpg",
 
-  // Design renders from the brief screenshot
-  strengthSurvivalBlack: "/products/strength-survival-black.jpg",
-  ironOverIllnessBlack: "/products/iron-over-illness-black.jpg",
-  mentalGreenBlack: "/products/mental-strength-green-black.jpg",
-  mentalGreenBlackAlt: "/products/mental-strength-green-black-alt.jpg",
-  mentalPinkBlack: "/products/mental-strength-pink-black.jpg",
-  mentalPinkWhite: "/products/mental-strength-pink-white.jpg",
-  loadOrangeTan: "/products/load-the-bar-orange-tan.jpg",
-  loadRedBlack: "/products/load-the-bar-red-black.jpg",
-  loadGreenBlack: "/products/load-the-bar-green-black.jpg",
+  // Long-sleeve back-print designs (cropped from collage)
+  longSleeveMentalGreenButterfliesBack: "/products/long-sleeve-mental-strength-green-butterflies-back.jpg",
+  longSleeveMentalGreenBack: "/products/long-sleeve-mental-strength-green-back.jpg",
+  longSleeveMentalPinkWhiteBack: "/products/long-sleeve-mental-strength-pink-white-back.jpg",
+  longSleeveLoadOrangeBack: "/products/long-sleeve-load-the-bar-orange-back.jpg",
+  longSleeveLoadGreenBack: "/products/long-sleeve-load-the-bar-green-back.jpg",
+  longSleeveCrestBlack: "/products/long-sleeve-dmk-crest-black-only.jpg",
+  longSleeveCrestWhite: "/products/long-sleeve-dmk-crest-white-only.jpg",
 
   // Hats
   hatSilver: "/products/trucker-hat-dmk-silver.jpg",
   hatGold: "/products/trucker-hat-dmk-gold.jpg",
-
-  // Long-sleeve real product photography
-  longSleeveCrestPair: "/products/long-sleeve-dmk-crest-pair.jpg",
-  longSleeveLineup: "/products/long-sleeve-lineup-black.jpg",
-  longSleevePlaceholder: "/products/long-sleeve-placeholder.jpg",
 
   // Backpacks
   backpackLoadOrange: "/products/backpack-load-the-bar-orange-black.jpg",
   backpackMentalGreen: "/products/backpack-mental-strength-green-black.jpg",
 };
 
-const HOODIE_DESIGNS: Design[] = [
-  {
-    id: "load-the-bar-orange",
-    name: "Load The Bar — Orange Cross",
-    imagesByColorway: {
-      tan: [P.loadOrangeTan],
-      black: [P.hoodieLoadBack],
-    },
-    tagline: "Load the bar. Unload the mind.",
-  },
-  {
-    id: "load-the-bar-red",
-    name: "Load The Bar — Red",
-    imagesByColorway: {
-      black: [P.loadRedBlack],
-    },
-    tagline: "Load the bar. Unload the mind.",
-  },
-  {
-    id: "load-the-bar-green",
-    name: "Load The Bar — Green Ribbon",
-    imagesByColorway: {
-      black: [P.loadGreenBlack],
-    },
-    tagline: "Load the bar. Unload the mind.",
-  },
-  {
-    id: "mental-strength-green",
-    name: "Mental Strength Is Trained — Green",
-    imagesByColorway: {
-      black: [P.mentalGreenBlack, P.mentalGreenBlackAlt],
-    },
-    tagline: "Train the mind like the body.",
-  },
-  {
-    id: "mental-strength-pink",
-    name: "Mental Strength Is Trained — Hearts",
-    imagesByColorway: {
-      white: [P.mentalPinkWhite],
-      black: [P.mentalPinkBlack],
-    },
-    tagline: "Train the mind like the body.",
-  },
-  {
-    id: "strength-is-survival",
-    name: "Strength Is Survival",
-    imagesByColorway: {
-      black: [P.strengthSurvivalBlack],
-    },
-    tagline: "Forged through the worst of it.",
-  },
-  {
-    id: "iron-over-illness",
-    name: "Iron Over Illness",
-    imagesByColorway: {
-      black: [P.ironOverIllnessBlack],
-    },
-    tagline: "Heavy days. Heavier reps.",
-  },
-  {
-    id: "dmk-crest",
-    name: "DMK Crest",
-    imagesByColorway: {
-      black: [P.hoodieCrestFront],
-    },
-    tagline: "House mark.",
-  },
-];
+// --- catalog --------------------------------------------------------------
+// Each design = its own product. The `designs` array on each Product carries
+// exactly one Design — the design IS the product. Front of every apparel
+// piece is the DMK crest, so each colorway's image array is [back, front].
 
-const SHORT_SLEEVE_DESIGNS: Design[] = [
-  {
-    id: "load-the-bar-orange",
-    name: "Load The Bar — Orange Cross",
-    imagesByColorway: {
-      black: [P.teeLoadOrangeBack],
-    },
-    tagline: "Load the bar. Unload the mind.",
-  },
-  {
-    id: "load-the-bar-green",
-    name: "Load The Bar — Green Ribbon",
-    imagesByColorway: {
-      black: [P.teeLoadGreenBack],
-    },
-    tagline: "Load the bar. Unload the mind.",
-  },
-  {
-    id: "mental-strength-green",
-    name: "Mental Strength Is Trained — Green",
-    imagesByColorway: {
-      black: [P.teeMentalGreenBack],
-    },
-    tagline: "Train the mind like the body.",
-  },
-  {
-    id: "mental-strength-green-butterflies",
-    name: "Mental Strength Is Trained — Green & Butterflies",
-    imagesByColorway: {
-      black: [P.teeMentalGreenButterfliesBack],
-    },
-    tagline: "Train the mind like the body.",
-  },
-  {
-    id: "mental-strength-pink",
-    name: "Mental Strength Is Trained — Hearts",
-    imagesByColorway: {
-      white: [P.teeMentalPinkWhiteBack],
-    },
-    tagline: "Train the mind like the body.",
-  },
-  {
-    id: "dmk-crest",
-    name: "DMK Crest",
-    imagesByColorway: {
-      black: [P.teeCrestFront],
-    },
-    tagline: "House mark.",
-  },
-];
+const designOnly = (
+  id: string,
+  name: string,
+  imagesByColorway: Partial<Record<Colorway, string[]>>,
+  tagline?: string,
+): Design[] => [{ id, name, imagesByColorway, tagline }];
 
-// Long-sleeve: real photography for the DMK crest pair; the rest of the design
-// catalog mirrors the hoodie lineup but shows the "lineup" group shot as a
-// placeholder until each design is photographed individually.
-const LONG_SLEEVE_DESIGNS: Design[] = [
-  {
-    id: "dmk-crest",
-    name: "DMK Crest",
-    imagesByColorway: {
-      black: [P.longSleeveCrestPair],
-      white: [P.longSleeveCrestPair],
+// --- Hoodies --------------------------------------------------------------
+
+const HOODIE_LOAD_THE_BAR: Product = {
+  slug: "hoodie-load-the-bar",
+  type: "hoodie",
+  name: "Load The Bar Hoodie",
+  price: 40,
+  designs: designOnly(
+    "load-the-bar",
+    "Load The Bar — Unload The Mind",
+    {
+      orange: [P.hoodieLoadOrange, P.hoodieCrestFront],
+      red: [P.hoodieLoadRed, P.hoodieCrestFront],
+      green: [P.hoodieLoadGreen, P.hoodieCrestFront],
     },
-    tagline: "House mark.",
-  },
-  ...HOODIE_DESIGNS.filter((d) => d.id !== "dmk-crest").map((d) => {
-    const lineupByColor: Partial<Record<Colorway, string[]>> = {};
-    for (const c of getDesignColorways(d)) {
-      lineupByColor[c] = [P.longSleeveLineup];
-    }
-    return { ...d, imagesByColorway: lineupByColor };
-  }),
-];
+    "Load the bar. Unload the mind.",
+  ),
+};
 
-const HAT_DESIGNS: Design[] = [
-  {
-    id: "trucker-dmk-silver",
-    name: "DMK Trucker — Silver",
-    imagesByColorway: { black: [P.hatSilver] },
-    tagline: "Mesh back. House crest.",
-  },
-  {
-    id: "trucker-dmk-gold",
-    name: "DMK Trucker — Gold",
-    imagesByColorway: { black: [P.hatGold] },
-    tagline: "Mesh back. Gilded crest.",
-  },
-];
+const HOODIE_MENTAL_STRENGTH: Product = {
+  slug: "hoodie-mental-strength",
+  type: "hoodie",
+  name: "Mental Strength Is Trained Hoodie",
+  price: 40,
+  designs: designOnly(
+    "mental-strength",
+    "Mental Strength Is Trained",
+    {
+      green: [P.hoodieMentalGreen, P.hoodieCrestFront],
+      pink: [P.hoodieMentalPink, P.hoodieCrestFront],
+    },
+    "Train the mind like the body.",
+  ),
+};
 
-const BACKPACK_DESIGNS: Design[] = [
-  {
-    id: "load-the-bar-orange",
-    name: "Load The Bar — Orange Cross",
-    imagesByColorway: { black: [P.backpackLoadOrange] },
-    tagline: "Load the bar. Unload the mind.",
-  },
-  {
-    id: "mental-strength-green",
-    name: "Mental Strength Is Trained — Green",
-    imagesByColorway: { black: [P.backpackMentalGreen] },
-    tagline: "Train the mind like the body.",
-  },
-];
+const HOODIE_STRENGTH_IS_SURVIVAL: Product = {
+  slug: "hoodie-strength-is-survival",
+  type: "hoodie",
+  name: "Strength Is Survival Hoodie",
+  price: 40,
+  designs: designOnly(
+    "strength-is-survival",
+    "Strength Is Survival",
+    {
+      black: [P.hoodieStrengthSurvival, P.hoodieCrestFront],
+    },
+    "Forged through the worst of it.",
+  ),
+};
+
+const HOODIE_IRON_OVER_ILLNESS: Product = {
+  slug: "hoodie-iron-over-illness",
+  type: "hoodie",
+  name: "Iron Over Illness Hoodie",
+  price: 40,
+  designs: designOnly(
+    "iron-over-illness",
+    "Iron Over Illness",
+    {
+      black: [P.hoodieIronOverIllness, P.hoodieCrestFront],
+    },
+    "Heavy days. Heavier reps.",
+  ),
+};
+
+// --- Short Sleeves --------------------------------------------------------
+
+const SHORT_SLEEVE_LOAD_THE_BAR: Product = {
+  slug: "short-sleeve-load-the-bar",
+  type: "short-sleeve",
+  name: "Load The Bar Short Sleeve",
+  price: 25,
+  designs: designOnly(
+    "load-the-bar",
+    "Load The Bar — Unload The Mind",
+    {
+      orange: [P.teeLoadOrangeBack, P.teeCrestFront],
+      green: [P.teeLoadGreenBack, P.teeCrestFront],
+    },
+    "Load the bar. Unload the mind.",
+  ),
+};
+
+const SHORT_SLEEVE_MENTAL_STRENGTH: Product = {
+  slug: "short-sleeve-mental-strength",
+  type: "short-sleeve",
+  name: "Mental Strength Is Trained Short Sleeve",
+  price: 25,
+  designs: designOnly(
+    "mental-strength",
+    "Mental Strength Is Trained",
+    {
+      green: [P.teeMentalGreenBack, P.teeCrestFront],
+      pink: [P.teeMentalPinkWhiteBack, P.teeCrestFront],
+    },
+    "Train the mind like the body.",
+  ),
+};
+
+const SHORT_SLEEVE_MENTAL_STRENGTH_HEARTS: Product = {
+  slug: "short-sleeve-mental-strength-hearts",
+  type: "short-sleeve",
+  name: "Mental Strength Is Trained — Hearts",
+  price: 25,
+  designs: designOnly(
+    "mental-strength-hearts",
+    "Mental Strength Is Trained — Hearts & Butterflies",
+    {
+      green: [P.teeMentalGreenButterfliesBack, P.teeCrestFront],
+    },
+    "Train the mind like the body.",
+  ),
+};
+
+// --- Long Sleeves ---------------------------------------------------------
+
+const LONG_SLEEVE_LOAD_THE_BAR: Product = {
+  slug: "long-sleeve-load-the-bar",
+  type: "long-sleeve",
+  name: "Load The Bar Long Sleeve",
+  price: 30,
+  designs: designOnly(
+    "load-the-bar",
+    "Load The Bar — Unload The Mind",
+    {
+      orange: [P.longSleeveLoadOrangeBack],
+      green: [P.longSleeveLoadGreenBack],
+    },
+    "Load the bar. Unload the mind.",
+  ),
+};
+
+const LONG_SLEEVE_MENTAL_STRENGTH: Product = {
+  slug: "long-sleeve-mental-strength",
+  type: "long-sleeve",
+  name: "Mental Strength Is Trained Long Sleeve",
+  price: 30,
+  designs: designOnly(
+    "mental-strength",
+    "Mental Strength Is Trained",
+    {
+      green: [P.longSleeveMentalGreenBack],
+      pink: [P.longSleeveMentalPinkWhiteBack],
+    },
+    "Train the mind like the body.",
+  ),
+};
+
+const LONG_SLEEVE_MENTAL_STRENGTH_HEARTS: Product = {
+  slug: "long-sleeve-mental-strength-hearts",
+  type: "long-sleeve",
+  name: "Mental Strength Is Trained — Hearts Long Sleeve",
+  price: 30,
+  designs: designOnly(
+    "mental-strength-hearts",
+    "Mental Strength Is Trained — Hearts & Butterflies",
+    {
+      green: [P.longSleeveMentalGreenButterfliesBack],
+    },
+    "Train the mind like the body.",
+  ),
+};
+
+const LONG_SLEEVE_DMK_CREST: Product = {
+  slug: "long-sleeve-dmk-crest",
+  type: "long-sleeve",
+  name: "DMK Crest Long Sleeve",
+  price: 30,
+  designs: designOnly(
+    "dmk-crest",
+    "DMK Crest",
+    {
+      black: [P.longSleeveCrestBlack],
+      white: [P.longSleeveCrestWhite],
+    },
+    "House mark.",
+  ),
+};
+
+// --- Hats -----------------------------------------------------------------
+
+const TRUCKER_HAT_DMK: Product = {
+  slug: "trucker-hat-dmk",
+  type: "hat",
+  name: "DMK Trucker Hat",
+  price: 20,
+  designs: designOnly(
+    "trucker-dmk",
+    "DMK Trucker",
+    {
+      black: [P.hatSilver],
+      gold: [P.hatGold],
+    },
+    "Mesh back. House crest.",
+  ),
+};
+
+// --- Backpacks ------------------------------------------------------------
+
+const BACKPACK_LOAD_THE_BAR: Product = {
+  slug: "backpack-load-the-bar",
+  type: "backpack",
+  name: "Load The Bar Backpack",
+  price: 45,
+  designs: designOnly(
+    "load-the-bar",
+    "Load The Bar — Unload The Mind",
+    {
+      orange: [P.backpackLoadOrange],
+    },
+    "Load the bar. Unload the mind.",
+  ),
+};
+
+const BACKPACK_MENTAL_STRENGTH: Product = {
+  slug: "backpack-mental-strength",
+  type: "backpack",
+  name: "Mental Strength Is Trained Backpack",
+  price: 45,
+  designs: designOnly(
+    "mental-strength",
+    "Mental Strength Is Trained",
+    {
+      green: [P.backpackMentalGreen],
+    },
+    "Train the mind like the body.",
+  ),
+};
+
+// --- final catalog --------------------------------------------------------
 
 export const PRODUCTS: Product[] = [
-  { slug: "hoodie", type: "hoodie", name: "DMK Hoodie", price: 40, designs: HOODIE_DESIGNS },
-  { slug: "short-sleeve", type: "short-sleeve", name: "DMK Short Sleeve", price: 25, designs: SHORT_SLEEVE_DESIGNS },
-  { slug: "long-sleeve", type: "long-sleeve", name: "DMK Long Sleeve", price: 30, designs: LONG_SLEEVE_DESIGNS },
-  { slug: "trucker-hat", type: "hat", name: "DMK Trucker Hat", price: 20, designs: HAT_DESIGNS },
-  { slug: "backpack", type: "backpack", name: "DMK Backpack", price: 45, designs: BACKPACK_DESIGNS },
+  // Hoodies
+  HOODIE_LOAD_THE_BAR,
+  HOODIE_MENTAL_STRENGTH,
+  HOODIE_STRENGTH_IS_SURVIVAL,
+  HOODIE_IRON_OVER_ILLNESS,
+  // Short Sleeves
+  SHORT_SLEEVE_LOAD_THE_BAR,
+  SHORT_SLEEVE_MENTAL_STRENGTH,
+  SHORT_SLEEVE_MENTAL_STRENGTH_HEARTS,
+  // Long Sleeves
+  LONG_SLEEVE_LOAD_THE_BAR,
+  LONG_SLEEVE_MENTAL_STRENGTH,
+  LONG_SLEEVE_MENTAL_STRENGTH_HEARTS,
+  LONG_SLEEVE_DMK_CREST,
+  // Hats
+  TRUCKER_HAT_DMK,
+  // Backpacks
+  BACKPACK_LOAD_THE_BAR,
+  BACKPACK_MENTAL_STRENGTH,
 ];
