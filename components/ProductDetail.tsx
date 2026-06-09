@@ -4,7 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Minus, Plus } from "lucide-react";
+import { ArrowRight, Check, Minus, Plus, ShoppingBag } from "lucide-react";
+import { useCart } from "@/lib/cart";
 import {
   COLORWAY_HEX,
   COLORWAY_LABEL,
@@ -48,6 +49,9 @@ export function ProductDetail({ product }: Props) {
   );
   const [qty, setQty] = useState(1);
   const [imageIdx, setImageIdx] = useState(0);
+
+  const { addItem } = useCart();
+  const [added, setAdded] = useState(false);
 
   // When the print color changes, the available shirt colors may shrink
   // (e.g. tan disappears when leaving orange). Snap back to a valid shirt
@@ -93,18 +97,27 @@ export function ProductDetail({ product }: Props) {
 
   const sizesAvailable = getSizesFor(product.type);
 
-  const checkoutHref = useMemo(() => {
-    const params = new URLSearchParams({
-      item: product.slug,
-      design: design.id,
-      color: colorway,
+  // Reset the "added" confirmation whenever the configuration changes, so the
+  // button reflects the current selection rather than a stale add.
+  useEffect(() => {
+    setAdded(false);
+  }, [design.id, colorway, shirtColor, placement, size, qty]);
+
+  function handleAddToCart() {
+    addItem({
+      slug: product.slug,
+      designId: design.id,
+      colorway,
+      shirtColor,
       placement,
-      qty: String(qty),
+      size,
+      qty,
+      name: product.name,
+      unitPrice: price,
+      image: images[0] ?? "/brand/logo-silver.png",
     });
-    if (size) params.set("size", size);
-    if (shirtColor) params.set("shirt", shirtColor);
-    return `/checkout?${params.toString()}`;
-  }, [product.slug, design.id, colorway, shirtColor, placement, size, qty]);
+    setAdded(true);
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
@@ -379,16 +392,36 @@ export function ProductDetail({ product }: Props) {
           </div>
 
           {/* CTA */}
-          <Link
-            href={checkoutHref}
+          <button
+            type="button"
+            onClick={handleAddToCart}
             className="mt-10 group inline-flex w-full items-center justify-center gap-2 rounded-md bg-dmk-green px-7 py-4 font-display text-lg tracking-widest text-dmk-black transition-all hover:bg-dmk-green-dark hover:-translate-y-0.5 hover:shadow-[0_10px_40px_-10px_rgba(34,197,94,0.6)] sm:w-auto"
           >
-            BUY NOW
-            <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-          </Link>
+            {added ? (
+              <>
+                ADDED TO CART
+                <Check className="h-5 w-5" />
+              </>
+            ) : (
+              <>
+                ADD TO CART
+                <ShoppingBag className="h-5 w-5 transition-transform group-hover:scale-110" />
+              </>
+            )}
+          </button>
+
+          {added && (
+            <Link
+              href="/checkout"
+              className="mt-3 group inline-flex w-full items-center justify-center gap-2 rounded-md border border-dmk-green/50 bg-dmk-green/5 px-7 py-3 font-display text-base tracking-widest text-dmk-green transition-all hover:bg-dmk-green/10 sm:w-auto"
+            >
+              VIEW CART &amp; CHECKOUT
+              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+            </Link>
+          )}
 
           <p className="mt-4 text-xs text-foreground/40">
-            Checkout coming soon — you'll be sent to a temporary order page.
+            Secure checkout powered by Stripe. Free local pickup or $7 delivery.
           </p>
         </div>
       </div>
