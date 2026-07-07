@@ -12,7 +12,6 @@ import {
   PLACEMENT_BLURB,
   PLACEMENT_LABEL,
   PRODUCT_TYPE_LABEL,
-  SIZES,
   type Colorway,
   type Placement,
   type Product,
@@ -20,8 +19,8 @@ import {
   getDesignColorways,
   getDesignImages,
   getPlacementPrice,
+  getProductSizes,
   getShirtColors,
-  getSizesFor,
 } from "@/lib/products";
 
 type Props = {
@@ -44,8 +43,9 @@ export function ProductDetail({ product }: Props) {
     product.placements[0].id,
   );
 
+  const sizesAvailable = getProductSizes(product);
   const [size, setSize] = useState<Size | null>(
-    getSizesFor(product.type) ? "M" : null,
+    sizesAvailable ? "M" : null,
   );
   const [qty, setQty] = useState(1);
   const [imageIdx, setImageIdx] = useState(0);
@@ -94,8 +94,6 @@ export function ProductDetail({ product }: Props) {
     setPlacement(p);
     setImageIdx(0);
   }
-
-  const sizesAvailable = getSizesFor(product.type);
 
   // Reset the "added" confirmation whenever the configuration changes, so the
   // button reflects the current selection rather than a stale add.
@@ -180,9 +178,16 @@ export function ProductDetail({ product }: Props) {
 
         {/* Info + pickers */}
         <div>
-          <p className="font-display text-sm tracking-[0.3em] text-dmk-green">
-            {PRODUCT_TYPE_LABEL[product.type].toUpperCase()}
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="font-display text-sm tracking-[0.3em] text-dmk-green">
+              {PRODUCT_TYPE_LABEL[product.type].toUpperCase()}
+            </p>
+            {product.limitedNote && (
+              <span className="rounded-full border border-dmk-green/40 bg-dmk-green/10 px-3 py-1 font-display text-xs tracking-widest text-dmk-green">
+                {product.limitedNote.toUpperCase()}
+              </span>
+            )}
+          </div>
           <h1 className="font-display text-4xl sm:text-5xl tracking-tight mt-2">
             {product.name.toUpperCase()}
           </h1>
@@ -344,7 +349,7 @@ export function ProductDetail({ product }: Props) {
                 SIZE
               </p>
               <div className="mt-3 grid grid-cols-6 gap-2 max-w-md">
-                {SIZES.map((s) => {
+                {sizesAvailable.map((s) => {
                   const isActive = s === size;
                   return (
                     <button

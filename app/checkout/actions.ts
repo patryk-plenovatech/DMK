@@ -8,12 +8,11 @@ import {
   COLORWAY_LABEL,
   PLACEMENT_LABEL,
   PRODUCT_TYPE_LABEL,
-  SIZES,
   getDesignColorways,
   getPlacementPrice,
   getProductBySlug,
+  getProductSizes,
   getShirtColors,
-  getSizesFor,
   type Colorway,
   type Placement,
   type Size,
@@ -72,8 +71,9 @@ function buildLine(raw: RawCartItem): BuiltLine | null {
       ? (raw.shirt as Colorway)
       : null;
 
+  const productSizes = getProductSizes(product);
   const size: Size | null =
-    getSizesFor(product.type) && SIZES.includes(raw.size as Size)
+    productSizes && productSizes.includes(raw.size as Size)
       ? (raw.size as Size)
       : null;
 

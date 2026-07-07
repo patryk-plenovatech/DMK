@@ -25,6 +25,9 @@
 export const SIZES = ["S", "M", "L", "XL", "2XL", "3XL"] as const;
 export type Size = (typeof SIZES)[number];
 
+// Some drops run a reduced size range (e.g. the July USA hoodie is S–2XL).
+export const SIZES_S_TO_2XL = ["S", "M", "L", "XL", "2XL"] as const;
+
 export type Colorway =
   | "black"
   | "white"
@@ -109,6 +112,10 @@ export type Product = {
   shirtColors?: Colorway[];
   /** Per-print-color overrides for shirt colors (e.g. orange print also offers tan). */
   shirtColorsByPrintColor?: Partial<Record<Colorway, Colorway[]>>;
+  /** Restrict this product to a reduced size range. Absent = full SIZES. */
+  sizes?: readonly Size[];
+  /** Short "limited drop" note shown as a badge (e.g. "July only"). */
+  limitedNote?: string;
   designs: Design[];
 };
 
@@ -178,6 +185,14 @@ export function getSizesFor(type: ProductType): readonly Size[] | null {
   return SIZES;
 }
 
+/** Sizes offered for a specific product — honours a per-product `sizes`
+ *  override (reduced range), else the universal range for its type. Returns
+ *  null for one-size products (hats, backpacks). */
+export function getProductSizes(product: Product): readonly Size[] | null {
+  if (getSizesFor(product.type) === null) return null;
+  return product.sizes ?? SIZES;
+}
+
 // --- pricing tiers --------------------------------------------------------
 
 const HOODIE_PLACEMENTS: PlacementOption[] = [
@@ -220,6 +235,10 @@ const P = {
   hoodieIronOverIllness: "/products/iron-over-illness-black.jpg",
   hoodieCrestFront: "/products/hoodie-dmk-crest-black-front.jpg",
   hoodieLoadBackStudio: "/products/hoodie-load-the-bar-black-back.jpg",
+
+  // Load The Bar — USA (limited July drop). [back, front].
+  hoodieLoadUsaBack: "/products/hoodie-load-the-bar-usa-white-back.jpg",
+  hoodieLoadUsaFront: "/products/hoodie-load-the-bar-usa-white-front.jpg",
 
   // Short-sleeve back-print designs (real product photography)
   teeLoadOrangeBack: "/products/short-sleeve-load-the-bar-orange-black-back.jpg",
@@ -277,6 +296,30 @@ const HOODIE_LOAD_THE_BAR: Product = {
       green: [P.hoodieLoadGreen, P.hoodieCrestFront],
     },
     "Load the bar. Unload the mind.",
+  ),
+};
+
+// Limited July drop: patriotic "Load The Bar — Unload The Mind" hoodie.
+// DMK crest on the front, USA-flag back print. One style, flat $35, offered on
+// a white or black hoodie, sizes S–2XL. The photo is the white colorway; shirt
+// color is a customer choice (same convention as the other hoodies).
+const HOODIE_LOAD_THE_BAR_USA: Product = {
+  slug: "hoodie-load-the-bar-usa",
+  type: "hoodie",
+  name: "Load The Bar USA Hoodie",
+  placements: [{ id: "back-with-crest", price: 35 }],
+  // White first — the product photo is the white colorway, so it should be the
+  // default selection. (Black is also offered.)
+  shirtColors: ["white", "black"],
+  sizes: SIZES_S_TO_2XL,
+  limitedNote: "Limited — July only",
+  designs: designOnly(
+    "load-the-bar-usa",
+    "Load The Bar — Unload The Mind (USA)",
+    {
+      white: [P.hoodieLoadUsaBack, P.hoodieLoadUsaFront],
+    },
+    "Limited July drop. Load the bar. Unload the mind.",
   ),
 };
 
@@ -507,6 +550,7 @@ const BACKPACK_MENTAL_STRENGTH: Product = {
 
 export const PRODUCTS: Product[] = [
   // Hoodies
+  HOODIE_LOAD_THE_BAR_USA, // limited July drop — featured first
   HOODIE_LOAD_THE_BAR,
   HOODIE_MENTAL_STRENGTH,
   HOODIE_STRENGTH_IS_SURVIVAL,

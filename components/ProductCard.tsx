@@ -42,6 +42,11 @@ export function ProductCard({ product }: Props) {
             sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
+          {product.limitedNote && (
+            <span className="absolute left-3 top-3 rounded-full border border-dmk-green/40 bg-dmk-black/80 px-3 py-1 font-display text-[0.65rem] tracking-widest text-dmk-green backdrop-blur">
+              {product.limitedNote.toUpperCase()}
+            </span>
+          )}
         </div>
 
         <div className="flex items-end justify-between gap-4 p-5">
