@@ -18,6 +18,7 @@ const TYPE_FILTERS: { value: ProductType | "all"; label: string }[] = [
   { value: "hoodie", label: "HOODIES" },
   { value: "short-sleeve", label: "SHORT SLEEVE" },
   { value: "long-sleeve", label: "LONG SLEEVE" },
+  { value: "sweatpants", label: "SWEATPANTS" },
   { value: "hat", label: "HATS" },
   { value: "backpack", label: "BACKPACKS" },
 ];

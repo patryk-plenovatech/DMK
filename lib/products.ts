@@ -6,26 +6,26 @@
 // customer choice that are independent of each other:
 //
 //   1. PRINT COLOR (Colorway, via design.imagesByColorway) — the ink color on
-//      the design (orange / red / green / pink / gold / silver). For the DMK
-//      crest long-sleeve, the colorway happens to be the SHIRT color since
-//      the design itself is one color.
+//      the design (orange / green / pink / gold). Products with a single print
+//      hide this picker. For sweatpants the colorway IS the garment color.
 //   2. SHIRT COLOR (product.shirtColors) — the garment fabric color
 //      (black / white / tan). Independent of print color; the customer can
-//      mix any print onto any shirt color. The orange Load-The-Bar print is
+//      mix any print onto any shirt color. The orange Load-The-Bar hoodie is
 //      the only one with a tan option, expressed via shirtColorsByPrintColor.
-//   3. PLACEMENT (product.placements) — design-on-front (cheaper) vs.
-//      DMK-crest-front + design-on-back (more expensive). Long sleeves are
-//      priced the same for both placements.
-//   4. SIZE — universal apparel sizes; hats and backpacks are one-size.
+//   3. PLACEMENT (product.placements) — every hoodie/shirt is now DMK crest on
+//      the front + design on the back (one style, flat priced), so the
+//      placement picker is hidden.
+//   4. SIZE — universal apparel sizes (S–3XL); sweatpants run S–2XL; hats and
+//      backpacks are one-size.
 //
-// Each colorway's image array is ordered [back, front] — design-bearing back
-// first, DMK crest front second. Single-image arrays for products without a
-// front/back pair (hats, backpacks).
+// Apparel colorway image arrays are ordered [back, front] — design-bearing
+// back first, DMK crest front second. Single-image arrays for products without
+// a front/back pair (long sleeves, sweatpants, hats, backpacks).
 
 export const SIZES = ["S", "M", "L", "XL", "2XL", "3XL"] as const;
 export type Size = (typeof SIZES)[number];
 
-// Some drops run a reduced size range (e.g. the July USA hoodie is S–2XL).
+// Some products run a reduced size range (e.g. sweatpants are S–2XL).
 export const SIZES_S_TO_2XL = ["S", "M", "L", "XL", "2XL"] as const;
 
 export type Colorway =
@@ -67,6 +67,7 @@ export type ProductType =
   | "hoodie"
   | "short-sleeve"
   | "long-sleeve"
+  | "sweatpants"
   | "hat"
   | "backpack";
 
@@ -74,6 +75,7 @@ export const PRODUCT_TYPE_LABEL: Record<ProductType, string> = {
   hoodie: "Hoodie",
   "short-sleeve": "Short Sleeve",
   "long-sleeve": "Long Sleeve",
+  sweatpants: "Sweatpants",
   hat: "Trucker Hat",
   backpack: "Backpack",
 };
@@ -151,8 +153,8 @@ export function getAllColorways(product: Product): Colorway[] {
 
 /** Returns shirt colors available for a given print color, falling back to
  *  the product's default `shirtColors`. Returns `undefined` when the product
- *  doesn't expose a shirt-color picker at all (hats, backpacks, products
- *  whose colorway IS the shirt color like the DMK crest long-sleeve). */
+ *  doesn't expose a shirt-color picker at all (hats, backpacks, sweatpants,
+ *  and other products whose colorway IS the garment color). */
 export function getShirtColors(
   product: Product,
   printColor: Colorway,
@@ -195,19 +197,22 @@ export function getProductSizes(product: Product): readonly Size[] | null {
 
 // --- pricing tiers --------------------------------------------------------
 
+// All hoodies and shirts are front (DMK crest) + back (design) only — one
+// style per garment, flat priced.
 const HOODIE_PLACEMENTS: PlacementOption[] = [
-  { id: "front-only", price: 35 },
-  { id: "back-with-crest", price: 40 },
+  { id: "back-with-crest", price: 45 },
 ];
 
 const SHORT_SLEEVE_PLACEMENTS: PlacementOption[] = [
-  { id: "front-only", price: 25 },
   { id: "back-with-crest", price: 30 },
 ];
 
 const LONG_SLEEVE_PLACEMENTS: PlacementOption[] = [
-  { id: "front-only", price: 30 },
-  { id: "back-with-crest", price: 30 },
+  { id: "back-with-crest", price: 35 },
+];
+
+const SWEATPANTS_PLACEMENTS: PlacementOption[] = [
+  { id: "back-with-crest", price: 35 },
 ];
 
 const HAT_PLACEMENTS: PlacementOption[] = [
@@ -221,41 +226,43 @@ const BACKPACK_PLACEMENTS: PlacementOption[] = [
 const SHIRT_COLORS_DEFAULT: Colorway[] = ["black", "white"];
 
 // --- asset paths ----------------------------------------------------------
+// Back-design crops show each design on a black garment (the canonical view);
+// shirt color is a separate customer choice. Cropped from the client's July
+// 2026 mockups (Photos 1).
 
 const P = {
-  // Hoodie back-print designs
-  hoodieLoadOrange: "/products/load-the-bar-orange-tan.jpg",
-  hoodieLoadRed: "/products/load-the-bar-red-black.jpg",
-  hoodieLoadGreen: "/products/load-the-bar-green-black.jpg",
-  hoodieMentalGreen: "/products/mental-strength-green-black.jpg",
-  hoodieMentalGreenAlt: "/products/mental-strength-green-black-alt.jpg",
-  hoodieMentalPink: "/products/mental-strength-pink-black.jpg",
-  hoodieMentalPinkWhite: "/products/mental-strength-pink-white.jpg",
-  hoodieStrengthSurvival: "/products/strength-survival-black.jpg",
-  hoodieIronOverIllness: "/products/iron-over-illness-black.jpg",
+  // Shared DMK crest fronts (black garment)
   hoodieCrestFront: "/products/hoodie-dmk-crest-black-front.jpg",
-  hoodieLoadBackStudio: "/products/hoodie-load-the-bar-black-back.jpg",
+  teeCrestFront: "/products/short-sleeve-dmk-crest-black-front.jpg",
+
+  // Hoodie back designs
+  hoodieLoadOrange: "/products/hoodie-load-the-bar-orange-black-back.jpg",
+  hoodieLoadGreen: "/products/hoodie-load-the-bar-green-black-back.jpg",
+  hoodieMentalPink: "/products/hoodie-mental-strength-pink-black-back.jpg",
+  hoodieSurvival: "/products/hoodie-strength-survival-gold-black-back.jpg",
+  hoodieIron: "/products/hoodie-iron-over-illness-gold-black-back.jpg",
 
   // Load The Bar — USA (limited July drop). [back, front].
   hoodieLoadUsaBack: "/products/hoodie-load-the-bar-usa-white-back.jpg",
   hoodieLoadUsaFront: "/products/hoodie-load-the-bar-usa-white-front.jpg",
 
-  // Short-sleeve back-print designs (real product photography)
-  teeLoadOrangeBack: "/products/short-sleeve-load-the-bar-orange-black-back.jpg",
-  teeLoadGreenBack: "/products/short-sleeve-load-the-bar-green-black-back.jpg",
-  teeMentalGreenBack: "/products/short-sleeve-mental-strength-green-black-back.jpg",
-  teeMentalGreenButterfliesBack: "/products/short-sleeve-mental-strength-green-butterflies-black-back.jpg",
-  teeMentalPinkWhiteBack: "/products/short-sleeve-mental-strength-pink-white-back.jpg",
-  teeCrestFront: "/products/short-sleeve-dmk-crest-black-front.jpg",
+  // Short-sleeve back designs
+  teeLoadOrange: "/products/short-sleeve-load-the-bar-orange-black-back.jpg",
+  teeLoadGreen: "/products/short-sleeve-load-the-bar-green-black-back.jpg",
+  teeMentalPink: "/products/short-sleeve-mental-strength-pink-black-back.jpg",
+  teeSurvival: "/products/short-sleeve-strength-survival-gold-black-back.jpg",
+  teeIron: "/products/short-sleeve-iron-over-illness-gold-black-back.jpg",
 
-  // Long-sleeve back-print designs (cropped from collage)
-  longSleeveMentalGreenButterfliesBack: "/products/long-sleeve-mental-strength-green-butterflies-back.jpg",
-  longSleeveMentalGreenBack: "/products/long-sleeve-mental-strength-green-back.jpg",
-  longSleeveMentalPinkWhiteBack: "/products/long-sleeve-mental-strength-pink-white-back.jpg",
-  longSleeveLoadOrangeBack: "/products/long-sleeve-load-the-bar-orange-back.jpg",
-  longSleeveLoadGreenBack: "/products/long-sleeve-load-the-bar-green-back.jpg",
-  longSleeveCrestBlack: "/products/long-sleeve-dmk-crest-black-only.jpg",
-  longSleeveCrestWhite: "/products/long-sleeve-dmk-crest-white-only.jpg",
+  // Long-sleeve back designs
+  longSleeveLoadOrange: "/products/long-sleeve-load-the-bar-orange-black-back.jpg",
+  longSleeveLoadGreen: "/products/long-sleeve-load-the-bar-green-black-back.jpg",
+  longSleeveMentalPink: "/products/long-sleeve-mental-strength-pink-black-back.jpg",
+  longSleeveSurvival: "/products/long-sleeve-strength-survival-gold-black-back.jpg",
+  longSleeveIron: "/products/long-sleeve-iron-over-illness-gold-black-back.jpg",
+
+  // Sweatpants (DMK crest on the thigh)
+  sweatpantsBlack: "/products/sweatpants-dmk-black.jpg",
+  sweatpantsGrey: "/products/sweatpants-dmk-grey.jpg",
 
   // Hats
   hatSilver: "/products/trucker-hat-dmk-silver.jpg",
@@ -279,6 +286,25 @@ const designOnly = (
 
 // --- Hoodies --------------------------------------------------------------
 
+// Limited July drop: patriotic "Load The Bar — Unload The Mind" hoodie. DMK
+// crest on the front, USA-flag back print. White or black, $45, S–3XL.
+const HOODIE_LOAD_THE_BAR_USA: Product = {
+  slug: "hoodie-load-the-bar-usa",
+  type: "hoodie",
+  name: "Load The Bar USA Hoodie",
+  placements: HOODIE_PLACEMENTS,
+  shirtColors: ["white", "black"],
+  limitedNote: "Limited — July only",
+  designs: designOnly(
+    "load-the-bar-usa",
+    "Load The Bar — Unload The Mind (USA)",
+    {
+      white: [P.hoodieLoadUsaBack, P.hoodieLoadUsaFront],
+    },
+    "Limited July drop. Load the bar. Unload the mind.",
+  ),
+};
+
 const HOODIE_LOAD_THE_BAR: Product = {
   slug: "hoodie-load-the-bar",
   type: "hoodie",
@@ -292,34 +318,9 @@ const HOODIE_LOAD_THE_BAR: Product = {
     "Load The Bar — Unload The Mind",
     {
       orange: [P.hoodieLoadOrange, P.hoodieCrestFront],
-      red: [P.hoodieLoadRed, P.hoodieCrestFront],
       green: [P.hoodieLoadGreen, P.hoodieCrestFront],
     },
     "Load the bar. Unload the mind.",
-  ),
-};
-
-// Limited July drop: patriotic "Load The Bar — Unload The Mind" hoodie.
-// DMK crest on the front, USA-flag back print. One style, flat $35, offered on
-// a white or black hoodie, sizes S–2XL. The photo is the white colorway; shirt
-// color is a customer choice (same convention as the other hoodies).
-const HOODIE_LOAD_THE_BAR_USA: Product = {
-  slug: "hoodie-load-the-bar-usa",
-  type: "hoodie",
-  name: "Load The Bar USA Hoodie",
-  placements: [{ id: "back-with-crest", price: 35 }],
-  // White first — the product photo is the white colorway, so it should be the
-  // default selection. (Black is also offered.)
-  shirtColors: ["white", "black"],
-  sizes: SIZES_S_TO_2XL,
-  limitedNote: "Limited — July only",
-  designs: designOnly(
-    "load-the-bar-usa",
-    "Load The Bar — Unload The Mind (USA)",
-    {
-      white: [P.hoodieLoadUsaBack, P.hoodieLoadUsaFront],
-    },
-    "Limited July drop. Load the bar. Unload the mind.",
   ),
 };
 
@@ -333,7 +334,6 @@ const HOODIE_MENTAL_STRENGTH: Product = {
     "mental-strength",
     "Mental Strength Is Trained",
     {
-      green: [P.hoodieMentalGreen, P.hoodieCrestFront],
       pink: [P.hoodieMentalPink, P.hoodieCrestFront],
     },
     "Train the mind like the body.",
@@ -350,7 +350,7 @@ const HOODIE_STRENGTH_IS_SURVIVAL: Product = {
     "strength-is-survival",
     "Strength Is Survival",
     {
-      black: [P.hoodieStrengthSurvival, P.hoodieCrestFront],
+      gold: [P.hoodieSurvival, P.hoodieCrestFront],
     },
     "Forged through the worst of it.",
   ),
@@ -366,7 +366,7 @@ const HOODIE_IRON_OVER_ILLNESS: Product = {
     "iron-over-illness",
     "Iron Over Illness",
     {
-      black: [P.hoodieIronOverIllness, P.hoodieCrestFront],
+      gold: [P.hoodieIron, P.hoodieCrestFront],
     },
     "Heavy days. Heavier reps.",
   ),
@@ -380,13 +380,12 @@ const SHORT_SLEEVE_LOAD_THE_BAR: Product = {
   name: "Load The Bar Short Sleeve",
   placements: SHORT_SLEEVE_PLACEMENTS,
   shirtColors: SHIRT_COLORS_DEFAULT,
-  shirtColorsByPrintColor: { orange: ["black", "white", "tan"] },
   designs: designOnly(
     "load-the-bar",
     "Load The Bar — Unload The Mind",
     {
-      orange: [P.teeLoadOrangeBack, P.teeCrestFront],
-      green: [P.teeLoadGreenBack, P.teeCrestFront],
+      orange: [P.teeLoadOrange, P.teeCrestFront],
+      green: [P.teeLoadGreen, P.teeCrestFront],
     },
     "Load the bar. Unload the mind.",
   ),
@@ -402,26 +401,41 @@ const SHORT_SLEEVE_MENTAL_STRENGTH: Product = {
     "mental-strength",
     "Mental Strength Is Trained",
     {
-      green: [P.teeMentalGreenBack, P.teeCrestFront],
-      pink: [P.teeMentalPinkWhiteBack, P.teeCrestFront],
+      pink: [P.teeMentalPink, P.teeCrestFront],
     },
     "Train the mind like the body.",
   ),
 };
 
-const SHORT_SLEEVE_MENTAL_STRENGTH_HEARTS: Product = {
-  slug: "short-sleeve-mental-strength-hearts",
+const SHORT_SLEEVE_STRENGTH_IS_SURVIVAL: Product = {
+  slug: "short-sleeve-strength-is-survival",
   type: "short-sleeve",
-  name: "Mental Strength Is Trained — Hearts",
+  name: "Strength Is Survival Short Sleeve",
   placements: SHORT_SLEEVE_PLACEMENTS,
   shirtColors: SHIRT_COLORS_DEFAULT,
   designs: designOnly(
-    "mental-strength-hearts",
-    "Mental Strength Is Trained — Hearts & Butterflies",
+    "strength-is-survival",
+    "Strength Is Survival",
     {
-      green: [P.teeMentalGreenButterfliesBack, P.teeCrestFront],
+      gold: [P.teeSurvival, P.teeCrestFront],
     },
-    "Train the mind like the body.",
+    "Forged through the worst of it.",
+  ),
+};
+
+const SHORT_SLEEVE_IRON_OVER_ILLNESS: Product = {
+  slug: "short-sleeve-iron-over-illness",
+  type: "short-sleeve",
+  name: "Iron Over Illness Short Sleeve",
+  placements: SHORT_SLEEVE_PLACEMENTS,
+  shirtColors: SHIRT_COLORS_DEFAULT,
+  designs: designOnly(
+    "iron-over-illness",
+    "Iron Over Illness",
+    {
+      gold: [P.teeIron, P.teeCrestFront],
+    },
+    "Heavy days. Heavier reps.",
   ),
 };
 
@@ -433,13 +447,12 @@ const LONG_SLEEVE_LOAD_THE_BAR: Product = {
   name: "Load The Bar Long Sleeve",
   placements: LONG_SLEEVE_PLACEMENTS,
   shirtColors: SHIRT_COLORS_DEFAULT,
-  shirtColorsByPrintColor: { orange: ["black", "white", "tan"] },
   designs: designOnly(
     "load-the-bar",
     "Load The Bar — Unload The Mind",
     {
-      orange: [P.longSleeveLoadOrangeBack],
-      green: [P.longSleeveLoadGreenBack],
+      orange: [P.longSleeveLoadOrange],
+      green: [P.longSleeveLoadGreen],
     },
     "Load the bar. Unload the mind.",
   ),
@@ -455,44 +468,62 @@ const LONG_SLEEVE_MENTAL_STRENGTH: Product = {
     "mental-strength",
     "Mental Strength Is Trained",
     {
-      green: [P.longSleeveMentalGreenBack],
-      pink: [P.longSleeveMentalPinkWhiteBack],
+      pink: [P.longSleeveMentalPink],
     },
     "Train the mind like the body.",
   ),
 };
 
-const LONG_SLEEVE_MENTAL_STRENGTH_HEARTS: Product = {
-  slug: "long-sleeve-mental-strength-hearts",
+const LONG_SLEEVE_STRENGTH_IS_SURVIVAL: Product = {
+  slug: "long-sleeve-strength-is-survival",
   type: "long-sleeve",
-  name: "Mental Strength Is Trained — Hearts Long Sleeve",
+  name: "Strength Is Survival Long Sleeve",
   placements: LONG_SLEEVE_PLACEMENTS,
   shirtColors: SHIRT_COLORS_DEFAULT,
   designs: designOnly(
-    "mental-strength-hearts",
-    "Mental Strength Is Trained — Hearts & Butterflies",
+    "strength-is-survival",
+    "Strength Is Survival",
     {
-      green: [P.longSleeveMentalGreenButterfliesBack],
+      gold: [P.longSleeveSurvival],
     },
-    "Train the mind like the body.",
+    "Forged through the worst of it.",
   ),
 };
 
-// DMK Crest long-sleeve: its colorway IS the shirt color (black vs. white),
-// so no separate shirt-color picker.
-const LONG_SLEEVE_DMK_CREST: Product = {
-  slug: "long-sleeve-dmk-crest",
+const LONG_SLEEVE_IRON_OVER_ILLNESS: Product = {
+  slug: "long-sleeve-iron-over-illness",
   type: "long-sleeve",
-  name: "DMK Crest Long Sleeve",
+  name: "Iron Over Illness Long Sleeve",
   placements: LONG_SLEEVE_PLACEMENTS,
+  shirtColors: SHIRT_COLORS_DEFAULT,
   designs: designOnly(
-    "dmk-crest",
-    "DMK Crest",
+    "iron-over-illness",
+    "Iron Over Illness",
     {
-      black: [P.longSleeveCrestBlack],
-      white: [P.longSleeveCrestWhite],
+      gold: [P.longSleeveIron],
     },
-    "House mark.",
+    "Heavy days. Heavier reps.",
+  ),
+};
+
+// --- Sweatpants -----------------------------------------------------------
+// DMK crest on the thigh. The colorway IS the garment color (black or grey),
+// so there is no separate shirt-color picker. S–2XL.
+
+const SWEATPANTS_DMK: Product = {
+  slug: "sweatpants-dmk",
+  type: "sweatpants",
+  name: "DMK Sweatpants",
+  placements: SWEATPANTS_PLACEMENTS,
+  sizes: SIZES_S_TO_2XL,
+  designs: designOnly(
+    "dmk-sweatpants",
+    "DMK Sweatpants",
+    {
+      black: [P.sweatpantsBlack],
+      grey: [P.sweatpantsGrey],
+    },
+    "Crest on the thigh.",
   ),
 };
 
@@ -558,12 +589,15 @@ export const PRODUCTS: Product[] = [
   // Short Sleeves
   SHORT_SLEEVE_LOAD_THE_BAR,
   SHORT_SLEEVE_MENTAL_STRENGTH,
-  SHORT_SLEEVE_MENTAL_STRENGTH_HEARTS,
+  SHORT_SLEEVE_STRENGTH_IS_SURVIVAL,
+  SHORT_SLEEVE_IRON_OVER_ILLNESS,
   // Long Sleeves
   LONG_SLEEVE_LOAD_THE_BAR,
   LONG_SLEEVE_MENTAL_STRENGTH,
-  LONG_SLEEVE_MENTAL_STRENGTH_HEARTS,
-  LONG_SLEEVE_DMK_CREST,
+  LONG_SLEEVE_STRENGTH_IS_SURVIVAL,
+  LONG_SLEEVE_IRON_OVER_ILLNESS,
+  // Sweatpants
+  SWEATPANTS_DMK,
   // Hats
   TRUCKER_HAT_DMK,
   // Backpacks
